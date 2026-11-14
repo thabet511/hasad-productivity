@@ -1707,6 +1707,10 @@ const DICT = {
  "تم تسجيلك بنجاح! سجّل دخولك الآن.":"You're signed up! Log in now.",
  "أهلاً ":"Welcome ",
  "، مزرعتك جاهزة.":", your farm is ready.",
+ "حسابك يحتاج تفعيل. افتح الرابط اللي وصلك على الإيميل (شيك مجلد الرسائل المزعجة Spam) ثم سجّل دخول.":"Your account needs activating. Open the link we emailed you (check Spam), then sign in.",
+ "التسجيل عليه ضغط الحين وقفلنا إرسال إيميلات التفعيل مؤقتاً. جرّب بعد ساعة، ولا تعيد المحاولة كثير.":"Sign-ups are busy and activation emails are paused for now. Try again in an hour, and avoid retrying repeatedly.",
+ "انتظر شوي قبل ما تعيد المحاولة.":"Wait a moment before trying again.",
+ "تم تسجيلك! أرسلنا رابط تفعيل لإيميلك — افتحه (شيك Spam) ثم سجّل دخولك.":"You're registered! We emailed you an activation link — open it (check Spam), then sign in.",
  "محاولات كثيرة. انتظر دقيقة وجرّب.":"Too many attempts. Wait a minute and try again.",
  "ما قدرنا نفتح الجلسة. جرّب مرة ثانية.":"Couldn't open the session. Try again.",
  "ما فيه اتصال بالسيرفر. تأكد من النت.":"No connection to the server. Check your internet.",
@@ -12352,7 +12356,7 @@ $("#goLogin").onclick   = ()=>$("#tabLogin").click();
 function cloudErr(e){
   const m = String(e&&e.message||e);
   if(/Invalid login credentials/i.test(m))  return TR("الإيميل أو كلمة السر غلط.");
-  if(/Email not confirmed/i.test(m))        return TR("الحساب يبي تفعيل إيميل. اقفل خيار Confirm email من لوحة Supabase.");
+  if(/Email not confirmed/i.test(m))        return TR("حسابك يحتاج تفعيل. افتح الرابط اللي وصلك على الإيميل (شيك مجلد الرسائل المزعجة Spam) ثم سجّل دخول.");
   if(/already registered|already been registered|User already/i.test(m))
                                             return TR("فيه حساب بهذا الإيميل. سجّل دخول بدل ما تنشئ.");
   /* السيرفر يرفض كلمة السر لقصرها أو لنقص نوع حرف فيها — في الحالتين
@@ -12361,6 +12365,7 @@ function cloudErr(e){
     return TR(PASS_RULE_MSG);
   if(/Unable to validate email|invalid format|valid email/i.test(m)) return TR("الإيميل غير صحيح.");
   if(/TOO_MANY_ATTEMPTS/.test(m))            return TR("محاولات خاطئة كثيرة. انتظر ربع ساعة وجرّب.");
+  if(/email rate limit|over_email_send_rate_limit/i.test(m)) return TR("التسجيل عليه ضغط الحين وقفلنا إرسال إيميلات التفعيل مؤقتاً. جرّب بعد ساعة، ولا تعيد المحاولة كثير.");
   if(/rate limit|too many|For security purposes/i.test(m)) return TR("محاولات كثيرة. انتظر دقيقة وجرّب.");
   if(/abort|Failed to fetch|NetworkError|network/i.test(m)) return TR("ما فيه اتصال بالسيرفر. تأكد من النت.");
   return m;
@@ -12446,6 +12451,7 @@ async function doLogin(){
 }
 
 /* ── تسجيل جديد: الحقول إجبارية (بما فيها اسم المستخدم)، وبعد النجاح يروح لصفحة الدخول ── */
+let SIGNUP_LOCK=0;
 async function doSignup(){
   if(!cloudReady()){ msg(TR("الاتصال بالسيرفر مو مضبوط.")); $("#cloudSetup").open=true; return; }
   const name=($("#sName").value||"").trim();
@@ -12476,7 +12482,10 @@ async function doSignup(){
   try{
     const avail = await checkUsernameAvailable(username);
     if(!avail){ msg(TR("هذا اسم المستخدم مأخوذ، جرّب غيره.")); $("#sUser").focus(); return; }
-    await cloudSignUp(email,pass,name,region,uni,username);
+    if(Date.now()<SIGNUP_LOCK){ msg(TR("انتظر شوي قبل ما تعيد المحاولة.")); return; }
+    SIGNUP_LOCK = Date.now()+15000;           /* يمنع الضغط المتكرر — كل محاولة تصرف إيميل من الحد */
+    const su = await cloudSignUp(email,pass,name,region,uni,username);
+    const needConfirm = !(su && su.access_token);
     TOK=null; writeTok(null);                 /* ما ندخله على طول — يسجّل دخوله بنفسه */
     /* الكود يُفعّل بعد أول دخول، لأن تفعيله يحتاج جلسة. نحفظه هنا ونستهلكه هناك. */
     if(ref){ try{ localStorage.setItem(PENDING_REF_KEY, ref); }catch(e){} }
@@ -12484,10 +12493,11 @@ async function doSignup(){
     if($("#sRef")) $("#sRef").value="";
     $("#cEmail").value=email; $("#cPass").value="";
     switchTab("login", true);
-    msg("", ref ? TR("تم تسجيلك! سجّل دخولك وبيوصلك نقاط الدعوة.")
+    msg("", needConfirm ? TR("تم تسجيلك! أرسلنا رابط تفعيل لإيميلك — افتحه (شيك Spam) ثم سجّل دخولك.")
+               : ref ? TR("تم تسجيلك! سجّل دخولك وبيوصلك نقاط الدعوة.")
                : TR("تم تسجيلك بنجاح! سجّل دخولك الآن."));
     setTimeout(()=>$("#cPass").focus(),80);
-  }catch(e){ msg(cloudErr(e)); }
+  }catch(e){ SIGNUP_LOCK = /email rate limit|over_email_send_rate_limit/i.test(String(e&&e.message||e)) ? Date.now()+60000 : 0; msg(cloudErr(e)); }
   finally{ busy(btn,false,TR("إنشاء الحساب")); }
 }
 $("#cInBtn").onclick = doLogin;
