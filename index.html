@@ -1707,10 +1707,11 @@ const DICT = {
  "تم تسجيلك بنجاح! سجّل دخولك الآن.":"You're signed up! Log in now.",
  "أهلاً ":"Welcome ",
  "، مزرعتك جاهزة.":", your farm is ready.",
- "حسابك يحتاج تفعيل. افتح الرابط اللي وصلك على الإيميل (شيك مجلد الرسائل المزعجة Spam) ثم سجّل دخول.":"Your account needs activating. Open the link we emailed you (check Spam), then sign in.",
- "التسجيل عليه ضغط الحين وقفلنا إرسال إيميلات التفعيل مؤقتاً. جرّب بعد ساعة، ولا تعيد المحاولة كثير.":"Sign-ups are busy and activation emails are paused for now. Try again in an hour, and avoid retrying repeatedly.",
+ "ما قدرنا ندخلك الحين. جرّب مرة ثانية بعد شوي، وإذا تكرر ارجع لنا.":"We couldn't sign you in right now. Try again shortly, and let us know if it keeps happening.",
+ "الإيميلات عليها ضغط الحين وتوقف إرسالها مؤقتاً. جرّب بعد شوي، ولا تكرر المحاولة.":"Emails are busy and paused for a moment. Try again shortly, and avoid repeated attempts.",
+ "ما قدرنا ننشئ الحساب الحين. جرّب مرة ثانية.":"We couldn't create the account right now. Try again.",
+ "تأكد من البيانات اللي كتبتها وجرّب.":"Check the details you entered and try again.",
  "انتظر شوي قبل ما تعيد المحاولة.":"Wait a moment before trying again.",
- "تم تسجيلك! أرسلنا رابط تفعيل لإيميلك — افتحه (شيك Spam) ثم سجّل دخولك.":"You're registered! We emailed you an activation link — open it (check Spam), then sign in.",
  "محاولات كثيرة. انتظر دقيقة وجرّب.":"Too many attempts. Wait a minute and try again.",
  "ما قدرنا نفتح الجلسة. جرّب مرة ثانية.":"Couldn't open the session. Try again.",
  "ما فيه اتصال بالسيرفر. تأكد من النت.":"No connection to the server. Check your internet.",
@@ -8482,7 +8483,13 @@ window.addEventListener("storage", (e)=>{
     try{ TOK = e.newValue ? JSON.parse(e.newValue) : null; }catch(err){}
   }
 });
-const cloudSignUp = (email,password,name,region,uni,username) => sbFetch("/auth/v1/signup", { method:"POST", body:{ email, password, data:{ name, region, uni, username } } });
+/* التسجيل يمر عبر دالة السيرفر (signup) اللي تنشئ الحساب مؤكَّداً مباشرة بلا إيميل،
+   فما يوقفه حد إرسال الإيميلات. لو الدالة مو موجودة نرجع للتسجيل العادي. */
+const cloudSignUp = async (email,password,name,region,uni,username) => {
+  const body = { email, password, data:{ name, region, uni, username } };
+  try{ return await sbFetch("/functions/v1/signup", { method:"POST", body }); }
+  catch(e){ if(e && e.status===404) return sbFetch("/auth/v1/signup", { method:"POST", body }); throw e; }
+};
 const cloudSignIn = (email,password) => sbFetch("/auth/v1/token?grant_type=password", { method:"POST", body:{ email, password } });
 /* استدعاءات عامة قبل تسجيل الدخول — بدون جلسة، بمفتاح anon بس */
 const checkUsernameAvailable = (username) => sbFetch("/rest/v1/rpc/username_available", { method:"POST", body:{ p_username:username } });
@@ -12356,7 +12363,7 @@ $("#goLogin").onclick   = ()=>$("#tabLogin").click();
 function cloudErr(e){
   const m = String(e&&e.message||e);
   if(/Invalid login credentials/i.test(m))  return TR("الإيميل أو كلمة السر غلط.");
-  if(/Email not confirmed/i.test(m))        return TR("حسابك يحتاج تفعيل. افتح الرابط اللي وصلك على الإيميل (شيك مجلد الرسائل المزعجة Spam) ثم سجّل دخول.");
+  if(/Email not confirmed/i.test(m))        return TR("ما قدرنا ندخلك الحين. جرّب مرة ثانية بعد شوي، وإذا تكرر ارجع لنا.");
   if(/already registered|already been registered|User already/i.test(m))
                                             return TR("فيه حساب بهذا الإيميل. سجّل دخول بدل ما تنشئ.");
   /* السيرفر يرفض كلمة السر لقصرها أو لنقص نوع حرف فيها — في الحالتين
@@ -12365,7 +12372,10 @@ function cloudErr(e){
     return TR(PASS_RULE_MSG);
   if(/Unable to validate email|invalid format|valid email/i.test(m)) return TR("الإيميل غير صحيح.");
   if(/TOO_MANY_ATTEMPTS/.test(m))            return TR("محاولات خاطئة كثيرة. انتظر ربع ساعة وجرّب.");
-  if(/email rate limit|over_email_send_rate_limit/i.test(m)) return TR("التسجيل عليه ضغط الحين وقفلنا إرسال إيميلات التفعيل مؤقتاً. جرّب بعد ساعة، ولا تعيد المحاولة كثير.");
+  if(/username taken/i.test(m))             return TR("هذا اسم المستخدم مأخوذ، جرّب غيره.");
+  if(/signup failed/i.test(m))              return TR("ما قدرنا ننشئ الحساب الحين. جرّب مرة ثانية.");
+  if(/^invalid format$/i.test(m))           return TR("تأكد من البيانات اللي كتبتها وجرّب.");
+  if(/email rate limit|over_email_send_rate_limit/i.test(m)) return TR("الإيميلات عليها ضغط الحين وتوقف إرسالها مؤقتاً. جرّب بعد شوي، ولا تكرر المحاولة.");
   if(/rate limit|too many|For security purposes/i.test(m)) return TR("محاولات كثيرة. انتظر دقيقة وجرّب.");
   if(/abort|Failed to fetch|NetworkError|network/i.test(m)) return TR("ما فيه اتصال بالسيرفر. تأكد من النت.");
   return m;
@@ -12493,11 +12503,11 @@ async function doSignup(){
     if($("#sRef")) $("#sRef").value="";
     $("#cEmail").value=email; $("#cPass").value="";
     switchTab("login", true);
-    msg("", needConfirm ? TR("تم تسجيلك! أرسلنا رابط تفعيل لإيميلك — افتحه (شيك Spam) ثم سجّل دخولك.")
+    msg("", needConfirm ? TR("تم تسجيلك بنجاح! سجّل دخولك الآن.")
                : ref ? TR("تم تسجيلك! سجّل دخولك وبيوصلك نقاط الدعوة.")
                : TR("تم تسجيلك بنجاح! سجّل دخولك الآن."));
     setTimeout(()=>$("#cPass").focus(),80);
-  }catch(e){ SIGNUP_LOCK = /email rate limit|over_email_send_rate_limit/i.test(String(e&&e.message||e)) ? Date.now()+60000 : 0; msg(cloudErr(e)); }
+  }catch(e){ SIGNUP_LOCK = /email rate limit|over_email_send_rate_limit|too many requests/i.test(String(e&&e.message||e)) ? Date.now()+60000 : 0; msg(cloudErr(e)); }
   finally{ busy(btn,false,TR("إنشاء الحساب")); }
 }
 $("#cInBtn").onclick = doLogin;
