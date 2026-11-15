@@ -588,6 +588,16 @@ body.landing #view-home{min-height:calc(100dvh - 64px);display:flex;flex-directi
   color:var(--ink-2); border-bottom:0.5px solid var(--line)}
 .g-chat-hdr span{flex:1}
 .g-chat-x{font-size:14px;color:var(--ink-3);padding:2px 4px}
+  .cm-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line,rgba(0,0,0,.08))}
+  .cm-row:first-of-type{border-top:0}
+  .cm-rank{flex:none;width:24px;height:24px;border-radius:50%;background:var(--paper-2,rgba(0,0,0,.06));display:grid;place-items:center;font-size:12px;font-weight:700}
+  .cm-nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere;text-align:start}
+  .cm-nm small{color:var(--ink-3);font-size:12px}
+  .cm-hr{flex:none;font-weight:700;font-variant-numeric:tabular-nums}
+  .cm-x{border:0;background:transparent;cursor:pointer;color:var(--ink-3);font-size:13px;padding:2px 6px}
+  .cm-card{display:flex;align-items:center;gap:10px;width:100%;padding:12px;margin:0 0 8px;border:1px solid var(--line,rgba(0,0,0,.1));border-radius:12px;background:transparent;font:inherit;color:inherit;cursor:pointer;text-align:start}
+  .cm-live{flex:none;font-size:12px;color:var(--viridian)}
+  .g-chat-in .g-input{flex:1;width:auto;min-width:0}
 .g-chat-msgs{max-height:260px;min-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:10px 12px}
 .g-chat-msg{font-size:12.5px;line-height:1.5}
 .g-chat-who{font-size:10.5px;font-weight:600;color:var(--viridian);margin-bottom:2px}
@@ -1140,6 +1150,19 @@ body,.panel,.stage,.btn,.chip,.switch-row,.isofarm{
         <label class="fld"><span>الإيميل</span>
           <input id="rEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@mail.com" dir="ltr"></label>
         <button class="btn btn-primary" id="rSend" style="width:100%">أرسل رابط الاستعادة</button>
+        <details id="rkBox" style="margin-top:16px">
+          <summary style="cursor:pointer;text-align:center;font-size:13px;color:var(--viridian);font-weight:600">عندي مفتاح استرجاع (بدون إيميل)</summary>
+          <div style="margin-top:10px">
+            <label class="fld"><span>اسم المستخدم</span>
+              <input id="rkUser" type="text" autocomplete="username" autocapitalize="off" dir="ltr" placeholder="username"></label>
+            <label class="fld"><span>مفتاح الاسترجاع</span>
+              <input id="rkKey" type="text" autocomplete="off" autocapitalize="characters" dir="ltr" placeholder="XXXX-XXXX-XXXX-XXXX" style="letter-spacing:1px"></label>
+            <label class="fld"><span>كلمة السر الجديدة</span>
+              <div class="pwwrap"><input id="rkPass" type="password" autocomplete="new-password" dir="ltr" placeholder="٨+ خانات: حرف كبير وصغير ورقم">
+              <button type="button" class="pwEye" data-topw="rkPass" aria-label="عرض كلمة السر">👁</button></div></label>
+            <button class="btn btn-primary" id="rkGo" style="width:100%">غيّر كلمة السر وادخل</button>
+          </div>
+        </details>
       </div>
       <div id="rstWait" hidden>
         <p class="gsub rst-p" id="rWaitNote">أرسلنا لك رابطاً على الإيميل. افتحه من نفس الجهاز.</p>
@@ -1711,6 +1734,18 @@ const DICT = {
  "الإيميلات عليها ضغط الحين وتوقف إرسالها مؤقتاً. جرّب بعد شوي، ولا تكرر المحاولة.":"Emails are busy and paused for a moment. Try again shortly, and avoid repeated attempts.",
  "ما قدرنا ننشئ الحساب الحين. جرّب مرة ثانية.":"We couldn't create the account right now. Try again.",
  "تأكد من البيانات اللي كتبتها وجرّب.":"Check the details you entered and try again.",
+ "مفتاح الاسترجاع":"Recovery key",
+ "مفتاح الاسترجاع (بدون إيميل)":"Recovery key (no email)",
+ "احفظه في مكان آمن (صورة شاشة أو ملاحظة). لو نسيت كلمة السر تدخل فيه بدون إيميل. ما يظهر مرة ثانية.":"Keep it somewhere safe (a screenshot or note). If you forget your password you can use it to get back in without email. It won't be shown again.",
+ "حفظته":"I saved it",
+ "هذا مفتاحك الجديد، والقديم ما عاد يصلح. احفظه.":"This is your new key; the old one no longer works. Save it.",
+ "اكتب اسم المستخدم.":"Enter your username.",
+ "اكتب مفتاح الاسترجاع.":"Enter your recovery key.",
+ "تغيّرت كلمة السر. سجّل دخولك الآن.":"Password changed. Sign in now.",
+ "محاولات خاطئة كثيرة. جرّب بعد ساعة.":"Too many wrong attempts. Try again in an hour.",
+ "اسم المستخدم أو مفتاح الاسترجاع غير صحيح.":"Username or recovery key is incorrect.",
+ "بننشئ مفتاح جديد ويبطل القديم (لو كان عندك). نكمل؟":"We'll create a new key and the old one (if any) stops working. Continue?",
+ "ما قدرنا ننشئ المفتاح. سجّل دخولك من جديد وجرّب.":"Couldn't create the key. Sign in again and retry.",
  "انتظر شوي قبل ما تعيد المحاولة.":"Wait a moment before trying again.",
  "محاولات كثيرة. انتظر دقيقة وجرّب.":"Too many attempts. Wait a minute and try again.",
  "ما قدرنا نفتح الجلسة. جرّب مرة ثانية.":"Couldn't open the session. Try again.",
@@ -11841,6 +11876,7 @@ function renderGroupInner(box){
   }
   const errHtml = G.err ? '<p class="g-note" style="color:var(--brick)">'+TR(G.err)+'</p>' : "";
   if(!G.code){
+    if(String(G.mode).startsWith("c-")) return renderCommunities(box);
     if(G.mode==="create"){
       const f=G.form, cur=f.cat||DB.tag;
       box.innerHTML='<section class="panel"><h3>'+TR("إنشاء جلسة")+'</h3>'+
@@ -11893,7 +11929,8 @@ function renderGroupInner(box){
     }
     box.innerHTML='<div class="g-choice">'+
       '<button class="btn btn-primary" type="button" data-act="mode" data-v="create"><span style="font-size:24px">➕</span>'+TR("إنشاء جلسة")+'</button>'+
-      '<button class="btn btn-quiet" type="button" data-act="mode" data-v="join"><span style="font-size:24px">🔑</span>'+TR("انضمام لجلسة")+'</button></div>'+
+      '<button class="btn btn-quiet" type="button" data-act="mode" data-v="join"><span style="font-size:24px">🔑</span>'+TR("انضمام لجلسة")+'</button>'+
+      '<button class="btn btn-quiet" type="button" data-act="mode" data-v="c-list"><span style="font-size:24px">👥</span>'+TR("مجتمعاتي")+'</button></div>'+
       '<p class="g-note">'+TR("لكل شخص نبتته من البذرة اللي مختارها. تنحسب الجلسة بمزرعتك وساعاتك وجامعتك.")+'</p>';
     return;
   }
@@ -12042,11 +12079,255 @@ $("#groupBody").addEventListener("change", e=>{
     G.sceneKey=null; renderGroup();
   }
 });
+/* ═══ المجتمعات الخاصة ═══
+   مجتمع خاص: المنشئ يدعو بالاسم أو بكود، شات دائم، ساعات المجتمع وكل عضو، وجلسة جماعية داخله.
+   كل شي عبر دوال RPC آمنة (supabase/migrations/20261115_communities.sql) — نفس أسلوب الجلسات. */
+const C = { list:[], invites:[], id:null, d:null, msgs:[], last:0, timer:null, tick:0, busy:false, fetching:false,
+            err:"", ok:"", draft:"", joinCode:"", inv:"", nm:"", ds:"", loaded:false };
+function cmErr(e){
+  const m = String((e&&e.message)||e||"");
+  const map = [["BAD_NAME","اسم المجتمع بين حرفين و٤٠ حرف."],["LIMIT_OWN","وصلت الحد: تقدر تنشئ ٣ مجتمعات فقط."],
+    ["LIMIT_JOIN","وصلت الحد: ١٠ مجتمعات."],["NO_COMMUNITY","ما لقينا مجتمع بهذا الكود."],["FULL","المجتمع ممتلئ."],
+    ["NOT_OWNER","هذا الإجراء لمنشئ المجتمع فقط."],["NO_USER","ما لقينا مستخدم بهذا الاسم."],["ALREADY","هذا الشخص عضو بالفعل."],
+    ["TOO_MANY","عندك دعوات معلّقة كثيرة."],["NOT_MEMBER","أنت لست عضواً بهذا المجتمع."],["RATE","رسائل كثيرة، انتظر شوي."],
+    ["SESSION_ACTIVE","فيه جلسة شغالة بالمجتمع، انضم لها."],["NO_INVITE","الدعوة ما عادت موجودة."],
+    ["SELF","ما تقدر تطرد نفسك."],["NOT_COMMUNITY","هذه جلسة مجتمع وأنت لست عضواً فيه."]];
+  for(const [k,t] of map) if(m.includes(k)) return t;
+  if(/community_|PGRST202|Could not find|HTTP 404/.test(m)) return "المجتمعات ما تفعّلت بقاعدة البيانات بعد.";
+  console.error("[community]", e);
+  return "صار خطأ بالاتصال. جرّب مرة ثانية.";
+}
+const cmMins = n => hhmm(Math.max(0, Math.round(+n||0)));
+async function cmLoadList(){
+  try{
+    const [l, iv] = await Promise.all([ gRpc("community_list"), gRpc("community_my_invites") ]);
+    C.list = Array.isArray(l) ? l : []; C.invites = Array.isArray(iv) ? iv : []; C.loaded = true;
+  }catch(e){ C.err = cmErr(e); C.loaded = true; }
+  if(G.mode==="c-list") renderGroup();
+}
+async function cmFetchData(){
+  if(!C.id) return;
+  try{
+    const d = await gRpc("community_get", { p_community:C.id });
+    if(C.id && d && d.id===C.id){ C.d = d; cmPaint(); }
+  }catch(e){
+    if(/NOT_MEMBER/.test(String(e&&e.message))){ C.id=null; C.d=null; G.mode="c-list"; cmLoadList(); renderGroup(); return; }
+    C.err = cmErr(e); cmPaint();
+  }
+}
+async function cmFetchMsgs(){
+  if(!C.id) return;
+  try{
+    const rows = await gRpc("community_messages", { p_community:C.id, p_after:C.last });
+    if(Array.isArray(rows) && rows.length){
+      C.msgs = C.msgs.concat(rows).slice(-300); C.last = rows[rows.length-1].id; cmPaintMsgs(true);
+    }
+  }catch(e){}
+}
+function cmStartPoll(){
+  if(C.timer) return;
+  C.timer = setInterval(async ()=>{
+    const viewing = G.mode==="c-view" && !G.code && C.id && !document.hidden && $("#view-group").classList.contains("on");
+    if(!viewing || C.fetching) return;
+    C.fetching = true;
+    try{ C.tick++; await cmFetchMsgs(); if(C.tick%3===0) await cmFetchData(); }finally{ C.fetching=false; }
+  }, 4000);
+}
+function cmOpen(id){
+  C.id = id; C.d = null; C.msgs = []; C.last = 0; C.err = ""; C.ok = ""; C.tick = 0; G.err = "";
+  G.mode = "c-view"; renderGroup(); cmFetchData(); cmFetchMsgs(); cmStartPoll();
+}
+function cmPaintMsgs(stick){
+  const box = $("#cmMsgs"); if(!box) return;
+  const nearEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  const me = gMyId(), owner = !!(C.d && C.d.owner);
+  box.innerHTML = C.msgs.map(m=>{
+    const mine = m.uid===me;
+    return '<div class="g-chat-msg'+(mine?" g-chat-mine":"")+'">'+
+      '<div class="g-chat-who">'+escAttr(m.n||TR("مزارع"))+
+      ((mine||owner)?' <button class="cm-x" type="button" data-act="cm" data-v="delmsg" data-x="'+escAttr(m.id)+'" aria-label="'+escAttr(TR("حذف"))+'">✕</button>':"")+
+      '</div><div class="g-chat-txt">'+escAttr(m.t)+'</div></div>';
+  }).join("") || '<div style="text-align:center;color:var(--ink-3);font-size:12px;padding:8px">'+TR("لا رسائل بعد. ابدأ المحادثة!")+'</div>';
+  if(stick && nearEnd || !C.msgs.length || stick===2) box.scrollTop = box.scrollHeight;
+}
+function cmPaint(){
+  const d = C.d; const top = $("#cmTop"); if(!d || !top) return;
+  const live = d.live;
+  top.innerHTML =
+    '<h3 style="margin:0 0 4px">'+escAttr(d.name)+'</h3>'+
+    (d.description?'<p class="g-note" style="text-align:start;margin:0 0 10px">'+escAttr(d.description)+'</p>':"")+
+    '<div class="g-meta"><span>⏱️ '+TR("ساعات المجتمع")+': <b>'+cmMins(d.total_minutes)+'</b></span>'+
+    '<span>👥 '+d.members.length+' '+TR("عضو")+'</span></div>'+
+    '<div class="g-row" style="margin-top:12px">'+
+    (live
+      ? '<button class="btn btn-primary" type="button" data-act="cm" data-v="joinlive" data-x="'+escAttr(live.code)+'">🟢 '+TR("انضم للجلسة الجماعية")+'</button>'+
+        (d.owner?'<button class="btn btn-quiet" type="button" data-act="cm" data-v="endlive">'+TR("إنهاء الجلسة")+'</button>':"")
+      : '<button class="btn btn-primary" type="button" data-act="cm" data-v="startlive"'+(C.busy?" disabled":"")+'>🌱 '+TR("ابدأ جلسة جماعية")+'</button>')+
+    '</div>'+
+    (live?'<p class="g-note" style="text-align:start;margin:8px 0 0">'+TR("فيه جلسة شغالة بدأها")+' '+escAttr(live.host)+'.</p>':"");
+  const mem = $("#cmMembers");
+  if(mem) mem.innerHTML = '<h3>'+TR("الأعضاء وساعاتهم")+'</h3>'+d.members.map((m,i)=>
+    '<div class="cm-row"><span class="cm-rank">'+(i+1)+'</span>'+
+    '<span class="cm-nm">'+(m.role==="owner"?"👑 ":"")+escAttr(m.name)+(m.user_id===d.me?' <i>('+TR("أنت")+')</i>':"")+'</span>'+
+    '<span class="cm-hr">'+cmMins(m.minutes)+'</span>'+
+    ((d.owner && m.user_id!==d.me)?'<button class="cm-x" type="button" data-act="cm" data-v="kick" data-x="'+escAttr(m.user_id)+'" aria-label="'+escAttr(TR("طرد"))+'">🚪</button>':"")+
+    '</div>').join("");
+  const own = $("#cmOwner");
+  if(own){
+    own.hidden = !d.owner;
+    const info = $("#cmOwnerInfo");
+    if(d.owner && info) info.innerHTML =
+      '<span class="g-label">'+TR("كود الدعوة")+'</span>'+
+      '<div class="g-codebox"><div class="g-code" dir="ltr">'+escAttr(d.invite_code||"")+'</div>'+
+      '<button class="btn btn-quiet" type="button" data-act="cm" data-v="copycode" style="flex:none;padding:9px 14px;font-size:14px">'+TR("نسخ")+'</button></div>'+
+      ((d.pending||[]).length?'<p class="g-note" style="text-align:start;margin:10px 0 0">'+TR("دعوات معلّقة")+': '+d.pending.map(p=>escAttr(p.name)).join("، ")+'</p>':"");
+  }
+  const st = $("#cmStatus");
+  if(st){ const msg = G.err||C.err; st.textContent = C.ok || (msg?TR(msg):""); st.style.color = C.ok ? "var(--viridian)" : "var(--brick)"; }
+}
+function renderCommunities(box){
+  const errLine = (G.err||C.err) ? '<p class="g-note" style="color:var(--brick);text-align:start">'+TR(G.err||C.err)+'</p>' : "";
+  const okLine  = C.ok ? '<p class="g-note" style="color:var(--viridian);text-align:start">'+escAttr(C.ok)+'</p>' : "";
+  const back = '<button class="btn btn-quiet" type="button" data-act="mode" data-v="home">'+TR("رجوع")+'</button>';
+  if(G.mode==="c-new"){
+    box.innerHTML = '<section class="panel"><h3>'+TR("مجتمع جديد")+'</h3>'+
+      '<span class="g-label">'+TR("اسم المجتمع")+'</span>'+
+      '<input class="g-input" id="cmNm" maxlength="40" autocomplete="off" placeholder="'+escAttr(TR("مثلاً: شلّة المذاكرة"))+'">'+
+      '<span class="g-label">'+TR("وصف قصير (اختياري)")+'</span>'+
+      '<input class="g-input" id="cmDs" maxlength="200" autocomplete="off">'+
+      '<p class="g-note" style="text-align:start;margin:12px 0 0">'+TR("المجتمع خاص: ما أحد ينضم إلا بدعوة منك أو بكود الدعوة.")+'</p>'+
+      errLine+
+      '<div class="g-row"><button class="btn btn-primary" type="button" data-act="cm" data-v="create"'+(C.busy?" disabled":"")+'>'+TR("أنشئ المجتمع")+'</button>'+
+      '<button class="btn btn-quiet" type="button" data-act="mode" data-v="c-list">'+TR("رجوع")+'</button></div></section>';
+    const nm=$("#cmNm"), ds=$("#cmDs"); nm.value=C.nm; ds.value=C.ds;
+    nm.oninput=()=>{ C.nm=nm.value; }; ds.oninput=()=>{ C.ds=ds.value; };
+    nm.onkeydown=ds.onkeydown=e=>{ if(e.key==="Enter") cmCreate(); };
+    return;
+  }
+  if(G.mode==="c-view"){
+    box.innerHTML =
+      '<section class="panel" id="cmTop"><p class="g-note">'+TR("جاري التحميل…")+'</p></section>'+
+      '<section class="panel" id="cmMembers"></section>'+
+      '<section class="panel"><h3>💬 '+TR("محادثة المجتمع")+'</h3>'+
+        '<div class="g-chat-msgs" id="cmMsgs" style="max-height:280px;min-height:120px"></div>'+
+        '<div class="g-chat-in" style="margin-top:8px"><input class="g-chat-inp" id="cmInp" type="text" maxlength="500" autocomplete="off" placeholder="'+escAttr(TR("اكتب رسالة…"))+'">'+
+        '<button class="btn btn-primary" id="cmSend" type="button" data-act="cm" data-v="send" style="padding:8px 14px;font-size:13px">'+TR("إرسال")+'</button></div></section>'+
+      '<section class="panel" id="cmOwner" hidden><h3>'+TR("إدارة المجتمع")+'</h3><div id="cmOwnerInfo"></div>'+
+        '<span class="g-label">'+TR("ادعُ بالاسم")+'</span>'+
+        '<div class="g-chat-in"><input class="g-input" id="cmInv" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="'+escAttr(TR("اسم المستخدم"))+'" style="margin:0">'+
+        '<button class="btn btn-primary" type="button" data-act="cm" data-v="invite" style="padding:8px 14px;font-size:13px">'+TR("دعوة")+'</button></div>'+
+        '<div class="g-row"><button class="btn btn-quiet" type="button" data-act="cm" data-v="regen">'+TR("كود جديد")+'</button>'+
+        '<button class="btn btn-quiet" type="button" data-act="cm" data-v="delete" style="color:var(--brick)">'+TR("حذف المجتمع")+'</button></div></section>'+
+      '<p class="g-note" id="cmStatus" style="min-height:1.2em"></p>'+
+      '<div class="g-row"><button class="btn btn-quiet" type="button" data-act="cm" data-v="leave">'+TR("خروج من المجتمع")+'</button>'+
+      '<button class="btn btn-quiet" type="button" data-act="mode" data-v="c-list">'+TR("رجوع")+'</button></div>';
+    const inp=$("#cmInp"), inv=$("#cmInv");
+    inp.value=C.draft; inp.oninput=()=>{ C.draft=inp.value; };
+    inp.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); cmSend(); } };
+    inv.value=C.inv; inv.oninput=()=>{ C.inv=inv.value; };
+    inv.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); cmInvite(); } };
+    cmPaint(); cmPaintMsgs(2);
+    return;
+  }
+  /* c-list */
+  if(!C.loaded) cmLoadList();
+  box.innerHTML =
+    (C.invites.length ? '<section class="panel"><h3>✉️ '+TR("دعوات لك")+'</h3>'+C.invites.map(i=>
+       '<div class="cm-row"><span class="cm-nm"><b>'+escAttr(i.name)+'</b><br><small>'+TR("من")+' '+escAttr(i.by)+' · '+i.members+' '+TR("عضو")+'</small></span>'+
+       '<button class="btn btn-primary" type="button" data-act="cm" data-v="accept" data-x="'+escAttr(i.id)+'" style="padding:7px 12px;font-size:13px">'+TR("قبول")+'</button>'+
+       '<button class="btn btn-quiet" type="button" data-act="cm" data-v="decline" data-x="'+escAttr(i.id)+'" style="padding:7px 12px;font-size:13px">'+TR("رفض")+'</button></div>').join("")+'</section>' : "")+
+    '<section class="panel"><h3>👥 '+TR("مجتمعاتي")+'</h3>'+
+      (C.list.length ? C.list.map(c=>
+        '<button class="cm-card" type="button" data-act="cm" data-v="open" data-x="'+escAttr(c.id)+'">'+
+        '<span class="cm-nm"><b>'+(c.role==="owner"?"👑 ":"")+escAttr(c.name)+'</b>'+
+        '<small>'+c.members+' '+TR("عضو")+' · ⏱️ '+cmMins(c.minutes)+'</small></span>'+
+        (c.live?'<span class="cm-live">🟢 '+TR("جلسة شغالة")+'</span>':"")+'</button>').join("")
+       : '<p class="g-note" style="margin:0">'+(C.loaded?TR("ما أنت في أي مجتمع بعد. أنشئ مجتمعك أو انضم بكود."):TR("جاري التحميل…"))+'</p>')+
+    '</section>'+
+    '<section class="panel"><div class="g-row" style="margin:0"><button class="btn btn-primary" type="button" data-act="mode" data-v="c-new">➕ '+TR("مجتمع جديد")+'</button></div>'+
+      '<span class="g-label">'+TR("انضم بكود دعوة")+'</span>'+
+      '<div class="g-chat-in"><input class="g-input" id="cmJoin" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" dir="ltr" placeholder="ABCD2345" style="margin:0">'+
+      '<button class="btn btn-quiet" type="button" data-act="cm" data-v="joincode" style="padding:8px 14px;font-size:13px">'+TR("انضم")+'</button></div></section>'+
+    okLine+errLine+'<div class="g-row">'+back+'</div>';
+  const j=$("#cmJoin"); if(j){ j.value=C.joinCode; j.oninput=()=>{ C.joinCode=j.value; }; j.onkeydown=e=>{ if(e.key==="Enter") cmAct({dataset:{v:"joincode"}}); }; }
+}
+async function cmCreate(){
+  if(C.busy) return; C.busy=true; G.err=""; C.err=""; renderGroup();
+  try{
+    const r = await gRpc("community_create", { p_name:C.nm, p_desc:C.ds });
+    C.nm=""; C.ds=""; C.busy=false; await cmLoadList(); cmOpen(r.id);
+  }catch(e){ C.busy=false; C.err=cmErr(e); renderGroup(); }
+}
+async function cmSend(){
+  const t = (C.draft||"").trim(); if(!t||!C.id) return;
+  C.draft=""; const inp=$("#cmInp"); if(inp) inp.value="";
+  try{ await gRpc("community_send", { p_community:C.id, p_text:t }); await cmFetchMsgs(); const b=$("#cmMsgs"); if(b) b.scrollTop=b.scrollHeight; }
+  catch(e){ C.draft=t; if(inp) inp.value=t; C.err=cmErr(e); cmPaint(); }
+}
+async function cmInvite(){
+  const u=(C.inv||"").trim(); if(!u||!C.id) return;
+  try{ await gRpc("community_invite", { p_community:C.id, p_username:u }); C.inv=""; const i=$("#cmInv"); if(i) i.value=""; C.err=""; C.ok=TR("أرسلنا الدعوة."); await cmFetchData(); }
+  catch(e){ C.ok=""; C.err=cmErr(e); cmPaint(); }
+  setTimeout(()=>{ C.ok=""; cmPaint(); }, 4000);
+}
+function cmEnterRoom(code){
+  G.busy=false; G.code=String(code); G.room=null; G.done=false; G.invite=null; G.page="main"; gFails=0; gSave();
+  renderGroup(); gStartTimers(); gRefresh();
+  gRpc("group_set_wither", { p_code:G.code, p_strict:!!G.form.strict, p_grace_ms:G.form.grace }).then(gRefresh).catch(()=>{});
+}
+async function cmAct(b){
+  const v=b.dataset.v, x=b.dataset.x; C.err=""; G.err="";
+  try{
+    switch(v){
+      case "open": return cmOpen(x);
+      case "create": return cmCreate();
+      case "send": return cmSend();
+      case "invite": return cmInvite();
+      case "joincode": {
+        const code=(C.joinCode||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
+        if(code.length<8){ C.err="الكود ٨ خانات."; renderGroup(); return; }
+        const id = await gRpc("community_join", { p_code:code }); C.joinCode=""; await cmLoadList(); return cmOpen(id);
+      }
+      case "accept": { const id=await gRpc("community_accept_invite", { p_community:x }); await cmLoadList(); return cmOpen(id); }
+      case "decline": await gRpc("community_decline_invite", { p_community:x }); return cmLoadList();
+      case "copycode": {
+        const code=C.d&&C.d.invite_code; if(!code) return;
+        try{ await navigator.clipboard.writeText(code); C.ok=TR("نسخنا الكود."); }catch(e){ C.ok=code; }
+        cmPaint(); setTimeout(()=>{ C.ok=""; cmPaint(); }, 3000); return;
+      }
+      case "regen": if(!confirm(TR("تبي كود جديد؟ الكود القديم يبطل."))) return;
+        await gRpc("community_regen_code", { p_community:C.id }); return cmFetchData();
+      case "kick": if(!confirm(TR("تطرد هذا العضو من المجتمع؟"))) return;
+        await gRpc("community_kick", { p_community:C.id, p_user:x }); return cmFetchData();
+      case "delmsg": await gRpc("community_delete_message", { p_community:C.id, p_id:+x });
+        C.msgs=C.msgs.filter(m=>String(m.id)!==String(x)); return cmPaintMsgs(false);
+      case "leave": if(!confirm(TR("تبي تخرج من المجتمع؟"))) return;
+        await gRpc("community_leave", { p_community:C.id }); C.id=null; C.d=null; G.mode="c-list"; await cmLoadList(); return;
+      case "delete": if(!confirm(TR("تحذف المجتمع نهائياً؟ الرسائل والأعضاء ينحذفون."))) return;
+        await gRpc("community_delete", { p_community:C.id }); C.id=null; C.d=null; G.mode="c-list"; await cmLoadList(); return;
+      case "endlive": if(!confirm(TR("تنهي الجلسة الجماعية للجميع؟"))) return;
+        await gRpc("community_end_session", { p_community:C.id }); return cmFetchData();
+      case "joinlive":
+        if(sess){ toast(TR("خلّص جلستك الفردية أول."),"⏱️"); return; }
+        return gJoin(x);
+      case "startlive": {
+        if(sess){ toast(TR("خلّص جلستك الفردية أول."),"⏱️"); return; }
+        C.busy=true; cmPaint();
+        try{
+          const code = await gRpc("community_start_session", { p_community:C.id, p_category:G.form.cat||DB.tag, p_grace_ms:G.form.grace,
+            p_name:CURRENT.name, p_uni:CURRENT.uni||null, p_species:(G.form.species||DB.seed) });
+          C.busy=false; return cmEnterRoom(code);
+        }catch(e){ C.busy=false; throw e; }
+      }
+    }
+  }catch(e){ C.err=cmErr(e); if(G.mode==="c-view") cmPaint(); else renderGroup(); if(/SESSION_ACTIVE/.test(String(e&&e.message))) cmFetchData(); }
+}
+
 $("#groupBody").addEventListener("click", e=>{
   const b=e.target.closest("[data-act]"); if(!b || b.disabled) return;
   const v=b.dataset.v, f=G.form;
   switch(b.dataset.act){
-    case "mode":   G.mode=v; G.err=""; if(v==="home") G.invite=null; break;
+    case "mode":   G.mode=v; G.err=""; C.err=""; C.ok=""; if(v==="home") G.invite=null; if(v==="c-list"){ C.id=null; C.d=null; cmLoadList(); } break;
     case "focus":  G.focus=(v===gMyId())?null:v; if(G.page==="plants"){ G.page="main"; renderGroup(); writeRoute(); window.scrollTo(0,0); return; } break;
     case "species":
       if(G.mode==="join"){ const ci=$("#gCodeIn"); if(ci) G.form.code=ci.value; }
@@ -12074,6 +12355,7 @@ $("#groupBody").addEventListener("click", e=>{
     case "endall": return gEnd();
     case "back":   return gClear();
     case "gpause": return G.lp ? gLocalResume() : gLocalPause();
+    case "cm":     return cmAct(b);
     default: return;
   }
   renderGroup();
@@ -12352,6 +12634,53 @@ async function resetApply(){
   }catch(e){ msg(cloudErr(e),""); }
   finally{ if(b) b.disabled=false; }
 }
+/* ── مفتاح الاسترجاع: بديل بلا إيميل. يُعرض مرة وحدة ويُحفظ مشفّراً بالسيرفر ── */
+function showRecoveryKey(key, note){
+  const old=document.getElementById("rkDlg"); if(old) old.remove();
+  const bg=document.createElement("div"); bg.id="rkDlg";
+  bg.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:18px";
+  const card=document.createElement("div");
+  card.style.cssText="max-width:380px;width:100%;background:#16231f;color:#f2efe6;border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:20px;text-align:center;direction:rtl";
+  card.innerHTML='<h3 style="margin:0 0 6px;font-size:17px">'+TR("مفتاح الاسترجاع")+'</h3>'+
+    '<p style="margin:0 0 12px;font-size:13px;opacity:.85;line-height:1.7">'+(note||TR("احفظه في مكان آمن (صورة شاشة أو ملاحظة). لو نسيت كلمة السر تدخل فيه بدون إيميل. ما يظهر مرة ثانية."))+'</p>'+
+    '<div id="rkVal" style="direction:ltr;font-family:ui-monospace,Menlo,monospace;font-size:19px;letter-spacing:1.5px;background:#0d1714;border-radius:12px;padding:14px 8px;margin-bottom:12px;user-select:all;word-break:break-all"></div>'+
+    '<div style="display:flex;gap:8px"><button type="button" id="rkCopy" class="btn btn-quiet" style="flex:1">'+TR("نسخ")+'</button>'+
+    '<button type="button" id="rkOk" class="btn btn-primary" style="flex:1">'+TR("حفظته")+'</button></div>';
+  bg.appendChild(card); document.body.appendChild(bg);
+  card.querySelector("#rkVal").textContent=key;
+  card.querySelector("#rkCopy").onclick=async ()=>{
+    try{ await navigator.clipboard.writeText(key); }
+    catch(e){ const t=document.createElement("textarea"); t.value=key; document.body.appendChild(t); t.select(); try{ document.execCommand("copy"); }catch(_){} t.remove(); }
+    card.querySelector("#rkCopy").textContent=TR("تم ✓");
+  };
+  card.querySelector("#rkOk").onclick=()=>bg.remove();
+}
+async function rkReset(){
+  const b=$("#rkGo"); if(b && b.disabled) return;
+  const username=($("#rkUser").value||"").trim(), key=($("#rkKey").value||"").trim(), pass=$("#rkPass").value||"";
+  if(!username){ msg(TR("اكتب اسم المستخدم."),""); $("#rkUser").focus(); return; }
+  if(!key){ msg(TR("اكتب مفتاح الاسترجاع."),""); $("#rkKey").focus(); return; }
+  if(!passStrong(pass)){ msg(TR(PASS_RULE_MSG),""); $("#rkPass").focus(); return; }
+  if(!cloudReady()){ msg(TR("الاتصال بالسيرفر مو مضبوط."),""); return; }
+  if(b) b.disabled=true; msg("",TR("جارٍ التأكيد…"));
+  try{
+    const r = await sbFetch("/functions/v1/recovery",{ method:"POST", body:{ action:"reset", username, key, password:pass } });
+    const found = await loginEmail(username, pass);
+    if(!found){ msg(TR("تغيّرت كلمة السر. سجّل دخولك الآن."),""); $("#tabLogin").click(); return; }
+    const js = await cloudSignIn(found, pass);
+    if(!saveSession(js)){ msg(TR("تغيّرت كلمة السر. سجّل دخولك الآن."),""); $("#tabLogin").click(); return; }
+    $("#rkKey").value=""; $("#rkPass").value="";
+    toast(TR("تغيّرت كلمة السر ودخلناك."),"🔑");
+    await afterCloudAuth(true);
+    if(r && r.key) showRecoveryKey(r.key, TR("هذا مفتاحك الجديد، والقديم ما عاد يصلح. احفظه."));
+  }catch(e){
+    if(e && e.status===429) msg(TR("محاولات خاطئة كثيرة. جرّب بعد ساعة."),"");
+    else if(/invalid recovery|reset failed/i.test(String(e&&e.message))) msg(TR("اسم المستخدم أو مفتاح الاسترجاع غير صحيح."),"");
+    else msg(cloudErr(e),"");
+  }
+  finally{ if(b) b.disabled=false; }
+}
+$("#rkGo").onclick = rkReset;
 $("#goReset").onclick = openReset;
 $("#rBack").onclick   = ()=>$("#tabLogin").click();
 $("#rSend").onclick   = ()=>resetSend(false);
@@ -12507,6 +12836,7 @@ async function doSignup(){
                : ref ? TR("تم تسجيلك! سجّل دخولك وبيوصلك نقاط الدعوة.")
                : TR("تم تسجيلك بنجاح! سجّل دخولك الآن."));
     setTimeout(()=>$("#cPass").focus(),80);
+    if(su && su.recovery_key) showRecoveryKey(su.recovery_key);
   }catch(e){ SIGNUP_LOCK = /email rate limit|over_email_send_rate_limit|too many requests/i.test(String(e&&e.message||e)) ? Date.now()+60000 : 0; msg(cloudErr(e)); }
   finally{ busy(btn,false,TR("إنشاء الحساب")); }
 }
@@ -12552,6 +12882,7 @@ function openAccountSheet(){
     '</div>'+
     '<div class="row-actions">'+
       TR('<button class="btn btn-quiet" id="acEdit">تعديل بيانات الحساب</button>')+
+      (CURRENT.cloud?TR('<button class="btn btn-quiet" id="acRecKey">مفتاح الاسترجاع (بدون إيميل)</button>'):'')+
       (CURRENT.cloud?'':'<button class="btn btn-quiet" id="acPin">'+(CURRENT.pin?TR("غيّر الرمز السري"):TR("حطّ رمز سري"))+'</button>')+
       TR('<button class="btn btn-quiet" id="acSwitch">تبديل الحساب</button>')+
       TR('<button class="btn btn-danger" id="acOut">تسجيل خروج</button>')+
@@ -12563,6 +12894,16 @@ function openAccountSheet(){
   $("#acOut").onclick=()=>leaveAccount(true);
   $("#acDel").onclick=deleteAccount;
   $("#acEdit").onclick=openAccountEdit;
+  if($("#acRecKey")) $("#acRecKey").onclick=async ()=>{
+    const bt=$("#acRecKey"); if(bt.disabled) return;
+    if(!confirm(TR("بننشئ مفتاح جديد ويبطل القديم (لو كان عندك). نكمل؟"))) return;
+    bt.disabled=true;
+    try{
+      const r=await sbFetch("/functions/v1/recovery",{ method:"POST", body:{ action:"create", token:TOK&&TOK.access } });
+      if(r&&r.key) showRecoveryKey(r.key);
+    }catch(e){ toast(TR("ما قدرنا ننشئ المفتاح. سجّل دخولك من جديد وجرّب."),"⚠️"); }
+    finally{ bt.disabled=false; }
+  };
   /* كود الدعوة: لو ما وصل بعد نجيبه ونحدّث السطر، وزر النسخ يشتغل بلا
      clipboard API كمان (متصفحات قديمة أو سياق غير آمن) */
   const refEl=$("#acRefCode"), refCp=$("#acRefCopy");
