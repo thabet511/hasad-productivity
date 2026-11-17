@@ -2817,7 +2817,10 @@ function kmBetween(a,b){
   const h=Math.sin(dLa/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dLo/2)**2;
   return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
 }
+/* هذي الثلاثة تبقى مقفلة حتى لو كنت جنبها (الرياض): ما تنفتح بالموقع، بس بالشراء */
+const PLACE_NO_GEO = new Set(["tuwaiq","edge","khuraim"]);
 function placeNearMe(id){
+  if(PLACE_NO_GEO.has(id)) return false;
   try{
     const g=geoSaved(), P=PLACES.find(p=>p.id===id);
     return !!(g && P && P.ll && kmBetween(g,P.ll)<=120);
