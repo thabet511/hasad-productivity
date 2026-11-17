@@ -9870,6 +9870,7 @@ function startSession(){
           mode:DB.timerMode, targetMins:(DB.timerMode==="timer"?DB.timerMins:null), breakMins:(DB.timerMode==="timer"?DB.breakMins:null),
           roundIndex, roundsTotal };
   DB.active=sess; writeStore();
+  try{ focusLockOn(); }catch(e){}
   el.setup.style.display="none"; el.run.style.display="";
   const sp=SPECIES[sess.seed], tg=DB.tags.find(t=>t.id===sess.tagId);
   setRunTitle();
@@ -9898,6 +9899,7 @@ function startSession(){
 }
 function endCommon(){
   rafOn=false; hiddenAt=null; sess=null; DB.active=null;
+  try{ focusLockOff(); }catch(e){}
   presenceStop();
   clearInterval(liveSyncTimer); liveSyncTimer=null;
   el.setup.style.display=""; el.run.style.display="none";
@@ -10014,7 +10016,7 @@ function endBreak(natural){
 function graceName(){ const g=GRACES.find(x=>x.ms===DB.grace); return g?g.n:TR("١٠ ثوانٍ"); }
 
 document.addEventListener("visibilitychange", ()=>{
-  if(document.hidden){ if(sess){ hiddenAt=Date.now(); sess.hb=0; beat(); } return; }
+  if(document.hidden){ blurAt=null; if(sess){ hiddenAt=Date.now(); sess.hb=0; beat(); } return; }
   if(!sess){ lastDraw=0; drawHero(); if(anim) startLoop(); return; }
   const away=Date.now()-(hiddenAt||Date.now());
   hiddenAt=null;
@@ -10024,6 +10026,41 @@ document.addEventListener("visibilitychange", ()=>{
   }
   if(away>1500) toast(TR("رجعت في الوقت. سلمت النبتة."),"🌿");
   lastDraw=0; startLoop();
+});
+/* ─── قفل التركيز (الوضع الصارم): أقصى ما يقدر الموقع يسويه بدون برنامج ───
+   الموقع ما يقدر يحجب تطبيقات ثانية، لكن يسوي ثلاثة أشياء تخلّي الخروج ملحوظ ومكلف:
+   ١) شاشة كاملة أثناء الجلسة  ٢) تنبيه المتصفح قبل إغلاق/تحديث الصفحة  ٣) نعدّ اللحظات اللي
+   تطلع فيها لنافذة ثانية (blur) حتى لو الصفحة ما انخفت — مثل فتح تطبيق جنب المتصفح.
+   كلها بعد ضغطتك أنت على "ابدأ"، وتنتهي مع الجلسة. */
+let blurAt=null;
+function focusLockActive(){ return !!(sess && DB.strict && !sess.paused); }
+function focusLockOn(){
+  if(!DB.strict) return;
+  try{
+    const de=document.documentElement;
+    if(!document.fullscreenElement && de.requestFullscreen) de.requestFullscreen({navigationUI:"hide"}).catch(()=>{});
+  }catch(e){}
+}
+function focusLockOff(){
+  blurAt=null;
+  try{ if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{}); }catch(e){}
+}
+window.addEventListener("beforeunload", e=>{
+  if(!focusLockActive()) return;
+  e.preventDefault(); e.returnValue="";
+});
+window.addEventListener("blur", ()=>{ if(focusLockActive() && !document.hidden) blurAt=Date.now(); });
+window.addEventListener("focus", ()=>{
+  if(blurAt==null) return;
+  const away=Date.now()-blurAt; blurAt=null;
+  if(!focusLockActive() || document.hidden) return;
+  if(DB.grace!==Infinity && away>DB.grace){
+    wither(TR("طلعت لنافذة ثانية ")+Math.round(away/1000)+TR(" ثانية")); return;
+  }
+  if(away>1500) toast(TR("رجعت بسرعة. سلمت النبتة."),"🌿");
+});
+document.addEventListener("fullscreenchange", ()=>{
+  if(!document.fullscreenElement && focusLockActive()) toast(TR("طلعت من الشاشة الكاملة. اضغط على الصفحة وكمّل تركيزك."),"🛡️");
 });
 window.addEventListener("pagehide", ()=>{ if(sess){ sess.hb=0; beat(); } if(CURRENT&&CURRENT.cloud) pushNow(true); });
 /* السماء (الشمس/القمر/الإضاءة) تتبع ساعتك حتى بلا جلسة شغالة — نحدّثها كل دقيقة */
