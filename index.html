@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>حصاد الإنتاجية · وقتك يصير مزرعة</title>
 <meta name="description" content="عدّاد تركيز بلا حد. نبتة تكبر مع كل دقيقة، وتتحول شجرة، وتكبر للأبد.">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' https://ykybuccyhrkgzimmiweh.supabase.co wss://ykybuccyhrkgzimmiweh.supabase.co https://api.open-meteo.com; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="theme-color" content="#E3E9DC">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13575,42 +13577,9 @@ async function deleteAccount(){
 }
 function openPrivacyPolicy(){
   closeSheet();
-  const overlay=document.createElement("div");
-  overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px";
-  const box=document.createElement("div");
-  box.style.cssText="background:var(--paper);border-radius:var(--r-m);max-width:540px;width:100%;max-height:82vh;overflow-y:auto;padding:24px;position:relative;font-size:14px;line-height:1.75;color:var(--ink-2)";
-  const isAr = (document.documentElement.lang||"ar").startsWith("ar");
-  box.innerHTML=`
-    <button onclick="this.closest('[style*=fixed]').remove()" style="position:absolute;top:12px;inset-inline-end:14px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-3)">✕</button>
-    <h2 style="font-family:var(--kufi);font-size:18px;font-weight:700;color:var(--ink);margin:0 0 16px">${isAr?"سياسة الخصوصية — حصاد الإنتاجية":"Privacy Policy — Hasad Productivity"}</h2>
-    <p><strong>${isAr?"آخر تحديث:":"Last updated:"}</strong> ${new Date(2026,10,5).toLocaleDateString(isAr?"ar-SA":"en-US",{year:"numeric",month:"long",day:"numeric"})}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"ما الذي نجمعه؟":"What We Collect"}</h3>
-    <p>${isAr?"نجمع فقط البيانات الضرورية لتشغيل التطبيق: عنوان البريد الإلكتروني (للحسابات السحابية)، الاسم وتفاصيل الجامعة إذا اخترت إضافتها، وبيانات الجلسات والمزارع، ورصيد الكوينز وسجل الجلسات التي مُنحت عليها (مدة الجلسة وتاريخها فقط، بلا أي محتوى)، وكود الدعوة الخاص بك ومن سجّل به.":"We collect only what is needed to run the app: email address (cloud accounts), display name and university details if you choose to add them, session/farm data, your coin balance with a log of the sessions it was awarded for (duration and date only, no content), and your invite code and who signed up with it."}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"كيف نستخدم بياناتك؟":"How We Use Your Data"}</h3>
-    <p>${isAr?"بياناتك تُستخدم حصراً لتقديم خدمة التطبيق: حفظ مزرعتك، عرض إحصائياتك، والجلسات الجماعية. لا نبيع بياناتك ولا نشاركها مع أي طرف ثالث.":"Your data is used exclusively to provide the app service: saving your farm, showing your stats, and group sessions. We never sell or share your data with third parties."}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"وش يشوف غيرك؟":"What Others Can See"}</h3>
-    <p>${isAr?"اسم المستخدم يبان لمن يبحث عنك لإضافتك صديق. في الجلسات الجماعية يبان اسمك وجامعتك ونبتتك للمشاركين بنفس الجلسة فقط. لوحة الجامعات تعرض مجاميع الساعات لكل جامعة بدون أسماء. إيميلك ما يبان لأي أحد.":"Your username is visible to people searching to add you as a friend. In group sessions, your name, university and plant are shown only to participants of that session. The university board shows total hours per university without names. Your email is never shown to anyone."}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"خدمات خارجية":"Third-Party Services"}</h3>
-    <p>${isAr?"لعرض الجو الحقيقي نرسل إحداثيات المكان اللي اخترته فقط لخدمة Open-Meteo (بدون أي بيانات عنك). تحديد موقعك الدقيق اختياري ويبقى محفوظ على جهازك. نحمّل خطوط الكتابة من Google Fonts، وهذا قد يُطلع عنوان IP جهازك لجوجل أثناء تحميل الصفحة (بدون أي بيانات حساب أو هوية منّا).":"To show live weather, we send only the coordinates of the place you picked to Open-Meteo (no personal data). Using your exact location is optional and it stays on your device. We load typefaces from Google Fonts, which may expose your device's IP address to Google while the page loads (no account or identity data is sent by us)."}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"الاستضافة والتخزين":"Hosting & Infrastructure"}</h3>
-    <p>${isAr?"الموقع مستضاف على Vercel، والبيانات السحابية مخزّنة على Supabase مع حماية Row-Level Security: كل مستخدم ما يوصل إلا لبياناته، وكلمات السر مشفّرة ولا أحد يقدر يقرأها (حتى إحنا). هذه الخدمات قد تسجّل بيانات تقنية أساسية (مثل عنوان IP وسجلات الطلبات) لأغراض التشغيل والأمان فقط. الحسابات المحلية تبقى على جهازك فقط ولا تُرسل لأي خادم.":"The site is hosted on Vercel, and cloud data is stored on Supabase with Row-Level Security — each user can only access their own data, and passwords are hashed so nobody (including us) can read them. These providers may log basic technical data (such as IP address and request logs) for operation and security purposes only. Local accounts stay on your device only and are never sent to any server."}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"مدة الاحتفاظ بالبيانات":"Data Retention"}</h3>
-    <p>${isAr?"نحتفظ ببيانات حسابك السحابي ما دام حسابك مفعّلاً. إذا حذفت حسابك، تُمسح كل بياناتك (المزرعة، الجلسات، الكوينز والنباتات المشتراة، كود الدعوة وسجل دعواتك، الأصدقاء، اسم المستخدم) فوراً ونهائياً من خوادمنا. الحسابات المحلية تبقى محفوظة على جهازك فقط حتى تحذفها أنت أو تمسح بيانات المتصفح.":"We keep your cloud account data for as long as your account is active. If you delete your account, all your data (farm, sessions, coins and purchased plants, invite code and referral history, friends, username) is immediately and permanently erased from our servers. Local accounts remain on your own device only until you delete them or clear your browser data."}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"حقوقك":"Your Rights"}</h3>
-    <p>${isAr?"يحق لك: (١) الوصول لبياناتك وتنزيل نسخة منها عبر زر \"نزّل نسخة\" في صفحة مزرعتك، (٢) تصحيح اسمك أو تفاصيل جامعتك من إعدادات الحساب، و(٣) حذف حسابك وكل بياناتك نهائياً في أي وقت. الحذف فوري وغير قابل للتراجع.":"You have the right to: (1) access your data and download a copy via the \"Download a copy\" button on your garden page, (2) correct your name or university details from account settings, and (3) permanently delete your account and all your data at any time. Deletion is immediate and irreversible."}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"خطة الاستجابة لأي تسريب بيانات":"Data Breach Response Plan"}</h3>
-    <p>${isAr?"إذا اكتشفنا أي اختراق أو تسريب يؤثر على بياناتك الشخصية، نقوم بـ: (١) إيقاف الوصول غير المصرّح به فوراً وتغيير مفاتيح الوصول المتأثرة، (٢) تقييم حجم التسريب والبيانات المتأثرة، (٣) إشعارك عبر بريدك الإلكتروني المسجّل خلال 72 ساعة من تأكيد الحادثة، موضحين نوع البيانات المتأثرة والخطوات المطلوبة منك (مثل تغيير كلمة السر)، و(٤) مراجعة إعدادات الأمان لمنع تكرار الحادثة. نلتزم بالشفافية الكاملة معك في حال حدوث أي حادثة أمنية.":"If we discover any breach or leak affecting your personal data, we will: (1) immediately cut off unauthorized access and rotate affected credentials, (2) assess the scope of the breach and which data was affected, (3) notify you via your registered email within 72 hours of confirming the incident, explaining what data was affected and any steps you should take (such as changing your password), and (4) review our security configuration to prevent recurrence. We are committed to full transparency with you in the event of any security incident."}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"ملفات تعريف الارتباط":"Cookies"}</h3>
-    <p>${isAr?"نستخدم localStorage لحفظ إعداداتك محلياً فقط. لا نستخدم ملفات تتبع أو تحليلات خارجية.":"We use localStorage for local settings only. No tracking cookies or external analytics."}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"من دون سن الـ١٨":"Children's Privacy"}</h3>
-    <p>${isAr?"خدمتنا موجّهة لطلاب الجامعة والمتعلمين البالغين، ولا نجمع بيانات نعلم أنها لأطفال دون سن الـ١٨ عمداً. إذا علمنا بوجود حساب لقاصر، نحذف بياناته فوراً.":"Our service is aimed at university students and adult learners, and we do not knowingly collect data from children under 18. If we learn that an account belongs to a minor, we delete that data immediately."}</p>
-    <h3 style="font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px">${isAr?"التواصل":"Contact"}</h3>
-    <p>${isAr?"لأي استفسار حول بياناتك أو حقوقك أعلاه، أو للإبلاغ عن مشكلة أمنية، تواصل معنا عبر:":"For any questions about your data or the rights above, or to report a security issue, contact us via:"} <a href="mailto:hasad.productivity@gmail.com" dir="ltr" style="color:var(--viridian)">hasad.productivity@gmail.com</a></p>
-    <button onclick="this.closest('[style*=fixed]').remove()" style="margin-top:20px;width:100%" class="btn btn-primary">${isAr?"حسناً":"Got it"}</button>
-  `;
-  overlay.appendChild(box);
-  overlay.addEventListener("click",e=>{ if(e.target===overlay) overlay.remove(); });
-  document.body.appendChild(overlay);
+  /* السياسات كلها في صفحة منفصلة: privacy.html (ثنائية اللغة). rel=noopener تمنع الصفحة الجديدة من الوصول لهذي */
+  const w = window.open("privacy.html?lang="+(LANG==="en"?"en":"ar"), "_blank", "noopener,noreferrer");
+  if(!w) location.href = "privacy.html?lang="+(LANG==="en"?"en":"ar");
 }
 
 function exportBackup(){
