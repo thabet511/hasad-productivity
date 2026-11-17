@@ -198,6 +198,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 }
 .chip:hover{border-color:var(--ink-3);color:var(--ink)}
 .chip[aria-pressed="true"]{background:var(--viridian);border-color:var(--viridian);color:#fff}
+.chip.locked{opacity:.62}
+.chip.locked small{font-weight:700}
 .chip.tag[aria-pressed="true"]{background:var(--tagc);border-color:var(--tagc);color:#fff}
 .chip.tag::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--tagc);margin-inline-end:7px;vertical-align:middle}
 .chip.tag[aria-pressed="true"]::before{background:rgba(255,255,255,.85)}
@@ -2792,11 +2794,50 @@ const PLACES = [
   { id:"jubbah",    n:"جبّة",           sub:"حائل",     ll:[28.02,40.95], terr:"mesa",   clim:"najd",
     hill:["#C2A585","#A6886A","#86694F"], soil:"#DCC79C" }
 ];
+/* ── أماكن مجانية ومدفوعة ──
+   المجانية: موقعي + السودة + فيفاء + الدرعية + جدة (البحر الأحمر). الباقي يُشترى بالكوينز
+   (١٥٠–٤٠٠)، ومفتاحه "place:<id>" في نفس قائمة المشتريات. السيرفر هو اللي يتحقق من السعر
+   (جدول seed_prices) فما ينفع أحد يشتري بسعر غير سعره. ولو موقعك الجغرافي الدقيق قريب من
+   مكان مدفوع (≤١٢٠ كم) يفتح لك مجاناً. */
+const PLACE_FREE = new Set(["auto","soudah","fayfa","diriyah","jeddah"]);
+const PLACE_PRICE = {
+  thuwairat:150, ghadha:150, asfar:160, khuraim:170, hada:180,
+  rijal:200, uqair:200, jubbah:200, raghadan:220, dumat:220,
+  lajab:240, lawz:250, yanbu:250, aja:250, dheeain:260,
+  tuwaiq:280, disah:300, ahsa:300, nafud:300, harrah:320,
+  umluj:330, farasan:350, edge:350, hegra:380, neom:380,
+  alula:400, rubkhali:400
+};
+const placeKey = id => "place:"+id;
+const placeIdOfKey = k => (typeof k==="string" && k.startsWith("place:")) ? k.slice(6) : null;
+const isPlaceKey = k => { const i=placeIdOfKey(k); return !!(i && PLACE_PRICE[i]); };
+const placePrice = id => PLACE_PRICE[id] || 0;
+function kmBetween(a,b){
+  const R=6371, rad=x=>x*Math.PI/180, dLa=rad(b[0]-a[0]), dLo=rad(b[1]-a[1]);
+  const h=Math.sin(dLa/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+function placeNearMe(id){
+  try{
+    const g=geoSaved(), P=PLACES.find(p=>p.id===id);
+    return !!(g && P && P.ll && kmBetween(g,P.ll)<=120);
+  }catch(e){ return false; }
+}
+function placeUnlocked(id){
+  if(PLACE_FREE.has(id) || !PLACE_PRICE[id]) return true;
+  try{ if(ownedList().includes(placeKey(id))) return true; }catch(e){}
+  return placeNearMe(id);
+}
 const GEO_KEY="hasad.geo";
 function geoSaved(){ try{ const g=JSON.parse(localStorage.getItem(GEO_KEY)||"null"); return (g&&Number.isFinite(g[0])&&Number.isFinite(g[1]))?g:null; }catch(e){ return null; } }
-function curPlaceId(){ if(SCENE_OVR&&SCENE_OVR.place) return SCENE_OVR.place; try{ return localStorage.getItem(PLACE_KEY)||"auto"; }catch(e){ return "auto"; } }
+function curPlaceId(){
+  if(SCENE_OVR&&SCENE_OVR.place) return SCENE_OVR.place;
+  let id="auto"; try{ id=localStorage.getItem(PLACE_KEY)||"auto"; }catch(e){}
+  return placeUnlocked(id) ? id : "auto";      /* مكان مدفوع ما اشتريته → موقعي (ما نمسح اختيارك المخزّن) */
+}
 function curPlace(){ const id=curPlaceId(); return PLACES.find(p=>p.id===id)||PLACES[0]; }
 function setPlace(id){
+  if(!placeUnlocked(id)) return false;
   try{ localStorage.setItem(PLACE_KEY,id); }catch(e){}
   SITE = null; WX_LIVE = null; refreshLiveWeather(true);
 }
@@ -3762,8 +3803,10 @@ function terrainH(terr,t,i,seed,sig){
       const B=(sig&&sig.butte)||0, PF=(sig&&sig.pillarF)||1;
       const v=fbm(t*2.4*PF+i*1.3,seed,3);
       const thr=.46-.13*(PF-1);                        /* الأعمدة الضيّقة لازم عتبة أوطى وإلا نادراً ترتفع */
-      const plate=smooth(clamp((v-thr)/.075,0,1));
-      const notch=fbm(t*7.5+i*2.1,seed+8,2);
+      /* مقطع الكتلة: جدار شبه قائم من القاعدة وكتف مدوّر عند القمة (قبّة حجر رملي). منحنى
+         smoothstep المتماثل كان يفرش القاعدة ويدبّب القمة فتطلع الأعمدة كقوارير بولينغ */
+      const pp=clamp((v-thr)/.075,0,1), plate=1-Math.pow(1-pp,2.7);
+      const notch=fbm(t*7.5+i*2.1,seed+8,2) + (h01(Math.floor(t*46+i*9),seed+71)-.5)*.10*plate;
       if(B>0){
         /* العلا والحِجر ووادي الديسة: كتل حجر رملي منفصلة قائمة وسط وادٍ رملي مفتوح، بينها
            فجوات واسعة يبان منها الرمل والسما ورا. القاعدة الثابتة (٠٫١٠) كانت تربط الكتل
@@ -4054,7 +4097,7 @@ function makeTerrainJob(w,gy,s,PL,K,C,nightF,sx,elev,qOver){
       const bedS = st==="escarp" ? .17 : .050;
       const bed = fbm2(u*1.2+v*.05, v*13+fbm2(u*1.1,v*1.1,seed+21,2)*.55, seed+27, 2);  /* طبقات شبه أفقية مستقيمة */
       const pock= st==="escarp" ? .5 : fbm2(u*44, v*50, seed+131, 2);                   /* تجاويف قرص العسل */
-      return flut*.040 + bed*bedS + (pock-.5)*.030;
+      return flut*.020 + bed*bedS + (pock-.5)*.030;
     }
     if(st==="hills"){
       /* تلال متدحرجة ناعمة — مو قمم جبال حادة (مود "mount") ولا كثبان بوجه انزلاق ("dune")،
@@ -4225,51 +4268,72 @@ function makeTerrainJob(w,gy,s,PL,K,C,nightF,sx,elev,qOver){
       }
       bright += (rn2(u*80,v*40,seed+191)-.5)*.05;
     } else if(st==="mesa"||st==="qarah"){
-      /* طبقات ترسيبية واضحة لكن متموّجة (مو خطوط مستقيمة)، وأخاديد تعرية رأسية بحواف ناعمة
-         بدل الخطوط الرأسية الحادّة اللي كانت تبين كلطخات على جدار */
-      /* طبقات ترسيبية خفيفة متموّجة (أقوى بجروف طويق) */
-      /* كل تفاصيل الصخر تقوى كل ما قربت الطبقة (fi) — البعيد يبقى ناعماً بفعل الهوا.
-         التباين القديم كان ١٣٪ فقط على الجرف القريب فيطلع الجدار كلوح زجاج مصنفر */
-      const rk = .80+1.05*fi;
-      const bedS = (st==="escarp" ? .16 : .09)*rk;
-      const bedV = v*9+fbm2(u*1.2,v*1.2,seed+21,2)*.45;
-      bright += (fbm2(u*1.4+v*.2, bedV, seed+27, 2)-.5)*bedS;
-      /* حدّ الطبقة الرسوبية: خط ظل رفيع أفقي يتبع تموّج الطبقة — أبرز ما يميّز صخر العلا */
-      const bedT = bedV-Math.floor(bedV);
-      dark += smooth(clamp((.12-Math.abs(bedT-.5)*.9)/.12,0,1))*.09*rk;
-      /* كل طبقة ترسيبية لها درجتها: صخر العلا طبقاته تتراوح بين كريمي وبرتقالي وبنّي محمر،
-         واللون الواحد على الجرف كامل هو اللي يخلّيه يبان لوحاً مصبوغاً */
-      bright += (h01(Math.floor(bedV)*53, seed+181)-.5)*.13*rk;
-      /* التجاويف: ظل عميق داخلها وحافة سفلية أفتح (ضوء مرتد من أرضية التجويف) */
-      /* أعمدة النحت مرسومة مباشرة بمقطع عرضي مدوّر: كل عمود له حافة مضاءة وحافة ظل،
-         وبين كل عمودين شقّ معتم. العرض يتفاوت والعمود ينقطع عند الطبقات. حسابها عبر الميل
-         العام كان ينعّمها لين تختفي فيطلع الجرف جداراً أملس */
-      /* دعامات كبيرة متفاوتة + أخاديد صغيرة فوقها. عند كل طبقة صخرية تنزاح الأعمدة عشوائياً
-         فما تتواصل الشقوق من فوق لتحت (كانت تطلع كألواح سياج خشبي)، وتتلوّى مع العمق */
-      const fi7 = fi*7.3;
-      const seg = Math.floor(v*4.2 + vn2(u*3,fi7,seed+151)*2.2);
-      const segOff = (h01(seg*131+Math.round(fi*10)*7, seed+153)-.5)*1.4;
-      const warpU = fbm2(u*2.1, v*5.8, seed+141, 3)*3.0;   /* الأعمدة تتلوّى رأسياً فما تتحوّل لألواح سياج */
+      /* حجر العلا والديسة الرملي كما هو بالواقع:
+         ١) كتل ضخمة بأوجه عريضة: وجه مشمس ووجه ظل، وبينها شقوق رأسية عميقة متباعدة بلا انتظام.
+         ٢) طبقات ترسيبية أفقية: بعضها صلب يبرز كرفّ له حافة مضاءة وظل تحته.
+         ٣) ورنيش الصحراء: خطوط داكنة تسيل من القمة وتخفت.
+         ٤) ركام عند القاعدة (talus): منحدر حصى ناعم أفتح من الجرف، يربط الصخر بالأرض.
+         النسخة السابقة كانت أعمدة مدوّرة متلاصقة تتلوّى = ستارة قماش، وبلا ركام فتطلع
+         الكتل كأنها مقصوصة وموضوعة فوق الرمل */
+      const rk = .80+1.05*fi, fi7 = fi*7.3;
+      const baseY = (gy - s*lerp(.08,.004,fi))*q;
+      const cliffH = Math.max(0,(baseY-ridge[i][x])/q)/s;
+      const hb = (baseY-y)/q/s;
+      const talH = Math.min(cliffH*.42, .050*(.30+.75*fbm2(u*2.6,fi7,seed+401,2)+.75*fbm2(u*11,fi7,seed+403,2)));
+      const tal = st==="qarah" ? 0 : (talH>.003 ? 1-smooth(clamp((hb-talH*.30)/(talH*.70),0,1)) : (hb<=0?1:0));
+      const cl = 1-tal;
+      let bM=0, dM=0;
+      /* كتلة الضوء العامة: أوجه كاملة بالظل وأخرى بالشمس */
+      bM += (fbm2(u*2.2+fi7, v*.9, seed+205, 2)-.5)*.20*rk;
+      /* قمة الكتلة مدوّرة فتواجه السما: حافة علوية أفتح */
+      bM += smooth(clamp(1-dMain*8,0,1))*.09*day;
+      /* الطبقات */
+      const bedV = v*13+fbm2(u*1.3,v*1.2,seed+21,3)*1.25+(fbm2(u*6.5,v*2,seed+23,2)-.5)*.42;
+      const bedI = Math.floor(bedV), bedT = bedV-bedI;
+      bM += (fbm2(u*1.4+v*.2, bedV, seed+27, 2)-.5)*.08*rk;
+      /* لون كل طبقة، بانتقال ناعم عند الفاصل: القفزة الحادّة على خط مستقيم تطلع كشرائط مصبوغة */
+      bM += (lerp(h01(bedI*53, seed+181), h01((bedI+1)*53, seed+181), smooth(clamp((bedT-.72)/.28,0,1)))-.5)*.12*rk;
+      dM += smooth(clamp((.10-Math.abs(bedT-.5)*.9)/.10,0,1))*.06*rk;       /* فاصل رفيع */
+      const hard = h01(bedI*31+i*7, seed+183);
+      if(hard>.52){                                                          /* رفّ صلب */
+        const hk=(hard-.52)/.48;
+        dM += smooth(clamp((.18-bedT)/.18,0,1))*.22*rk*hk;                  /* ظل تحت الرف */
+        bM += smooth(clamp((bedT-.84)/.16,0,1))*.11*day*rk*hk;             /* حافته المضاءة */
+      }
+      /* الدعامات العريضة: عرضها متفاوت، تنقطع عند بعض الطبقات، وتتمايل قليلاً فقط */
+      const seg = Math.floor(v*2.4 + vn2(u*3,fi7,seed+151)*1.6);
+      const segOff = (h01(seg*131+Math.round(fi*10)*7, seed+153)-.5)*.55;
+      const warpU = fbm2(u*1.6, v*2.6, seed+141, 2)*1.3;
       const sideK = (Lx>=0?1:-1)*(Math.abs(Lx)*.7+.32);
-      const cuB = u*15 + warpU + segOff + fi7;
+      const cuB = u*8.5 + fbm2(u*3.1,fi7,seed+143,2)*2.4 + warpU + segOff + fi7;
       const cB = Math.floor(cuB), tB = cuB-cB;
-      const dB = .30 + .70*h01(cB*37+seg, seed+147);
-      const nB = (tB-.5)*2, rB = Math.sqrt(Math.max(0,1-nB*nB));
-      bright += nB*sideK*.31*dB*day*rk;
-      dark   += Math.pow(1-rB,4)*.38*dB*rk;                  /* الأخدود بين دعامتين */
-      const cuS = u*44 + warpU*1.6 + fi7*2 + segOff*2.3;
+      const dB = .25 + .75*h01(cB*37+seg, seed+147);
+      const nB = (tB-.5)*2, faceB = nB*(1.5-.5*nB*nB);
+      bM += faceB*sideK*.25*dB*day*rk;
+      dM += smooth(clamp((.15-(1-Math.abs(nB)))/.15,0,1))*(.18+.44*h01(cB*91+seg*3,seed+149))*dB*rk;   /* الشق */
+      const cuS = u*38 + warpU*1.6 + fi7*2 + segOff*2.3;
       const tS = cuS-Math.floor(cuS);
-      bright += (tS-.5)*2*sideK*.08*day*rk;
-      /* ورنيش الصحراء: خطوط داكنة رأسية طويلة تنزل من الحواف — من أوضح ملامح صخر العلا */
-      /* ورنيش الصحراء يسيل من حافة الصخرة لتحت ويخفّ كل ما نزل، وعرضه متفاوت. الخط
-         المتواصل بنفس القتامة من القمة للقاع هو اللي كان يعطي الجرف شكل عروق خشب */
+      bM += (tS-.5)*2*sideK*.045*day*rk;
+      /* ورنيش الصحراء يسيل من حافة الصخرة لتحت ويخفّ كل ما نزل، وعرضه متفاوت */
       const vsW = .52+.22*rn2(u*7.5, v*1.1, seed+163);
       const vs  = rn2(u*40, v*3.4, seed+161);
-      dark += smooth(clamp((vs-vsW)/.16,0,1))*.30*rk*clamp(1.08-dMain*1.25,0,1);
-      /* (التجاويف أُلغيت: على هذا البعد تطلع بقع طلاء على جدار، مو حفر بالصخر) */
-      bright += (rn2(u*90,v*80,seed+51)-.5)*.15*rk;           /* خشونة سطح الحجر */
-      bright += (rn2(u*170,v*150,seed+57)-.5)*.06*rk;
-      nx = clamp(nx + nxS*.85, -1, 1);                        /* الأعمدة تنحت بالضوء فعلياً */
+      dM += smooth(clamp((vs-vsW)/.16,0,1))*.30*rk*clamp(1.08-dMain*1.25,0,1);
+      bM += (rn2(u*90,v*80,seed+51)-.5)*.15*rk;               /* خشونة سطح الحجر */
+      bM += (rn2(u*170,v*150,seed+57)-.5)*.06*rk;
+      /* تعرية متوسطة الحجم: رقع متآكلة ممدودة أفقياً مع الطبقات + مسايل مطر رأسية قصيرة.
+         بدونها يبقى وجه الكتلة أملس كالجبس بين الشقوق */
+      bM += (fbm2(u*13, v*24, seed+207, 3)-.5)*.17*rk;
+      bM += (fbm2(u*64, v*7,  seed+209, 2)-.5)*.10*rk;
+      /* ظل التقاء الجرف بالركام */
+      if(talH>.003) dM += smooth(clamp(1-(hb-talH)/.010,0,1))*.08*rk;
+      bright += bM*cl; dark += dM*cl;
+      nx = clamp(nx + nxS*.85*cl, -1, 1);
+      if(tal>.01){
+        /* الركام: حصى وتراب منهار، سطحه مائل يواجه السما فهو أفتح، وتحفره مسايل خفيفة */
+        bright += tal*(.12 + (rn2(u*120,v*90,seed+189)-.5)*.11 + (rn2(u*46,v*30,seed+193)-.5)*.07);
+        const gx=u*9+fbm2(u*1.8,v*1.1,seed+186,3)*2.0, gI=Math.floor(gx), gf=Math.abs(gx-gI-.5);
+        dark += tal*smooth(clamp((.11-gf)/.11,0,1))*.10*(.3+.7*h01(gI,seed+187));
+      }
       if(st==="qarah"){
         if(vn2(u*38,v*2.4,seed+33)>.68) dark+=.18;
         if(dMain>.3 && vn2(u*26,v*9,seed+31)>.80) dark+=.46;
@@ -4277,6 +4341,18 @@ function makeTerrainJob(w,gy,s,PL,K,C,nightF,sx,elev,qOver){
     } else if(st==="hills"){
       /* تلال متدحرجة بغطاء شجيرات متناثر خفيف — أخف بكثير من غابة الجبال، يناسب هضبة عامة */
       bright += (fbm2(u*40,v*40,seed+27,2)-.5)*.11;
+      /* التلال الجرداء بالواقع مو سطحاً أملس: فيها أكتاف مضاءة وبطون ظل، ومسايل مطر تنزل
+         من القمة وتتّسع، ونقاط شجيرات داكنة متناثرة. بدونها تطلع الطبقة كغيمة غبار بلون واحد */
+      bright += (h-.5)*.50;
+      {
+        const gx=u*24+fbm2(u*3.2,v*2.6,seed+331,2)*3.4+fi*5, gI=Math.floor(gx), gf=Math.abs(gx-gI-.5);
+        const gd=clamp((dMain-.05)*3.2,0,1), gw=.05+.17*gd;
+        dark += smooth(clamp((gw-gf)/gw,0,1))*.24*gd*smooth(clamp(h01(gI,seed+333)*1.7-.45,0,1))*(1-.62*fi);
+        bright += smooth(clamp((gf-gw)/.10,0,1))*smooth(clamp((gw+.16-gf)/.10,0,1))*.07*day*gd;
+        bright += smooth(clamp(1-dMain*7,0,1))*.06*day;
+        const sh=rn2(u*210,v*150,seed+337);
+        if(sh>.80 && fi>.2) dark += smooth(clamp((sh-.80)/.08,0,1))*.20*fi*smooth(clamp(fbm2(u*5,v*5,seed+339,2)*2.4-.7,0,1));
+      }
       rockMix = clamp(.06 + .30*smooth(clamp(Math.abs(m)*.5,0,1)) - dMain*.12 + Math.abs(nxS)*.08, 0, .38);
       if(treeRGB && fi>.30 && dMain>.04){
         const patch=vn2(u*2.4,v*2.4,seed+63), patchF=clamp((patch-.38)/.20,0,1);
@@ -4707,7 +4783,7 @@ function drawElephantRock(ctx,cx,by,s,col,nightF,sx){
   const L=P(-52,0)[0], R=P(42,0)[0], T=P(0,-68)[1];
   /* اللون الخام للطبقة أغمق وأشبع من ناتج تظليل الجروف الفعلي — نفتحه ونطفيه شوي فيلتحم
      بالصخر حوله بدل ما يبين ملصقاً برتقالياً */
-  const rc = mix(mix(col,"#C8B49A",.30),"#E6D2B6",.10);
+  const rc = mix(col,"#C8B49A",.10);
   ctx.fillStyle=rc; ctx.fillRect(L,T,R-L,by-T+2);
   /* الحجم: جهة الشمس أفتح، والمقابلة بظل مزرق خفيف */
   const vg=ctx.createLinearGradient(L,0,R,0);
@@ -4735,19 +4811,19 @@ function drawElephantRock(ctx,cx,by,s,col,nightF,sx){
     ctx.beginPath(); ctx.moveTo(a[0]+lit*sc*1.2,a[1]); ctx.quadraticCurveTo(b[0]+lit*sc*1.2,b[1],e[0]+lit*sc*1.2,e[1]); ctx.stroke();
   }
   /* تجاويف تعرية: ظل داخلي مع حافة سفلية أفتح */
-  for(let k=0;k<9;k++){
-    const x=-40+h01(k,451)*72, y=-50+h01(k,453)*40, rw=(2+h01(k,455)*4.5), rh=rw*(.55+h01(k,457)*.5);
+  for(let k=0;k<5;k++){
+    const x=-40+h01(k,451)*72, y=-50+h01(k,453)*40, rw=(2+h01(k,455)*3), rh=rw*(1.4+h01(k,457)*1.2);
     const q=P(x,y);
     const g=ctx.createRadialGradient(q[0],q[1]-rh*sc*.2,0,q[0],q[1],rw*sc);
-    g.addColorStop(0,"rgba(40,18,12,.40)"); g.addColorStop(.7,"rgba(56,28,18,.18)"); g.addColorStop(1,"rgba(56,28,18,0)");
+    g.addColorStop(0,"rgba(40,18,12,.13)"); g.addColorStop(.7,"rgba(56,28,18,.06)"); g.addColorStop(1,"rgba(56,28,18,0)");
     ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(q[0],q[1],rw*sc,rh*sc,0,0,TAU); ctx.fill();
   }
   /* حبيبات الحجر: نقط فاتحة وداكنة دقيقة — الصخر ما يكون أملس كالبلاستيك */
   for(let k=0;k<520;k++){
     const x=-46+h01(k,461)*86, y=-66*h01(k,463), q=P(x,y);
     const rr=sc*(.35+h01(k,465)*.9);
-    ctx.fillStyle = h01(k,467)<.5 ? "rgba(60,32,20,"+(.10+h01(k,469)*.14).toFixed(3)+")"
-                                   : "rgba(255,238,212,"+((.06+h01(k,469)*.10)*day).toFixed(3)+")";
+    ctx.fillStyle = h01(k,467)<.5 ? "rgba(60,32,20,"+(.04+h01(k,469)*.06).toFixed(3)+")"
+                                   : "rgba(255,238,212,"+((.03+h01(k,469)*.05)*day).toFixed(3)+")";
     ctx.fillRect(q[0],q[1],rr,rr*(.6+h01(k,471)*.8));
   }
   /* باطن القوس: ظل عميق على الجدار الداخلي */
@@ -4755,6 +4831,8 @@ function drawElephantRock(ctx,cx,by,s,col,nightF,sx){
   const ag=ctx.createRadialGradient(aq[0],aq[1],0,aq[0],aq[1],16*sc);
   ag.addColorStop(0,"rgba(30,14,10,.45)"); ag.addColorStop(1,"rgba(30,14,10,0)");
   ctx.fillStyle=ag; ctx.fillRect(L,T,R-L,by-T+2);
+  /* غبش الجو: يلحم الصخرة بالجرف خلفها */
+  ctx.fillStyle="rgba(214,196,176,"+(.16*day+.05).toFixed(3)+")"; ctx.fillRect(L,T,R-L,by-T+2);
   ctx.restore();
   /* ظل الكتلة على الأرض من جهة عكس الشمس */
   const sh=ctx.createRadialGradient(cx-lit*14*sc,by+1,0,cx-lit*14*sc,by+1,48*sc);
@@ -6801,12 +6879,30 @@ function renderPalm(ctx,sp,id,cx,gy,Hd,M,seed,withered,bloom,small,maxHalf,juv){
       L.push([x-hw,y]); R.push([x+hw,y]);
     }
     const g=ctx.createLinearGradient(x0-w0,0,x0+w0,0);
-    g.addColorStop(0,shade(bark,litSide>0?-.42:.04)); g.addColorStop(.35,shade(bark,litSide>0?-.10:.10));
-    g.addColorStop(.65,shade(bark,litSide>0?.10:-.10)); g.addColorStop(1,shade(bark,litSide>0?.04:-.42));
+    /* أسطوانة فعلية: الحافتان تغمقان (السطح يلفّ بعيداً عن العين) والجهة المقابلة للشمس
+       أفتح. التدرّج القديم كان خفيفاً فيطلع الجذع شريطاً مسطّحاً */
+    g.addColorStop(0,shade(bark,litSide>0?-.56:-.20)); g.addColorStop(.14,shade(bark,litSide>0?-.34:.06));
+    g.addColorStop(.36,shade(bark,litSide>0?-.12:.16)); g.addColorStop(.64,shade(bark,litSide>0?.16:-.12));
+    g.addColorStop(.86,shade(bark,litSide>0?.06:-.34)); g.addColorStop(1,shade(bark,litSide>0?-.20:-.56));
     ctx.fillStyle=g; ctx.beginPath();
     L.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
     for(let i=N;i>=0;i--) ctx.lineTo(R[i][0],R[i][1]);
     ctx.closePath(); ctx.fill();
+    /* ظل التاج على أعلى الجذع + عتمة التلامس عند القاعدة: السعف يحجب الشمس عن الجزء
+       اللي تحته، وبدون هذا الظل يبين التاج كأنه ملصوق فوق عمود مضاء بالتساوي */
+    {
+      const yT=Math.min(y0,y1), yB=Math.max(y0,y1), hT=yB-yT;
+      const sg=ctx.createLinearGradient(0,yT,0,yB);
+      sg.addColorStop(0,"rgba(10,8,4,.62)"); sg.addColorStop(.10,"rgba(10,8,4,.40)");
+      sg.addColorStop(.30,"rgba(10,8,4,.10)"); sg.addColorStop(.46,"rgba(10,8,4,0)");
+      sg.addColorStop(.93,"rgba(10,8,4,0)"); sg.addColorStop(1,"rgba(10,8,4,.34)");
+      ctx.save(); ctx.beginPath();
+      L.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+      for(let i=N;i>=0;i--) ctx.lineTo(R[i][0],R[i][1]);
+      ctx.closePath(); ctx.clip(); ctx.fillStyle=sg;
+      ctx.fillRect(Math.min(x0,x1)-w0*2, yT-1, Math.abs(x1-x0)+w0*4, hT+2);
+      ctx.restore();
+    }
     /* النخلة الملكية والأريكا جذعهما أملس بحلقات ندوب رفيعة فقط — الكرب المعيّن
        علامة نخلة التمر، ووضعه عليهما يخلّيهما نسخة من نخلة التمر */
     if(fan || id==="royalpalm" || id==="areca"){    /* جذوع ملساء: حلقات أفقية رفيعة من ندوب السعف */
@@ -6837,14 +6933,14 @@ function renderPalm(ctx,sp,id,cx,gy,Hd,M,seed,withered,bloom,small,maxHalf,juv){
         const dw=hw*(.26*vr), dhh=dh*(.52*vr);
         const lf=(u*litSide>0);
         /* الكتلة نفسها: وجه أفتح/أغمق حسب جهتها من الشمس */
-        ctx.fillStyle = lf ? "rgba(255,238,206,"+(.07+.15*face).toFixed(3)+")"
+        ctx.fillStyle = lf ? "rgba(255,238,206,"+(.04+.09*face).toFixed(3)+")"
                            : "rgba(16,10,5,"+(.07+.16*face).toFixed(3)+")";
         ctx.beginPath(); ctx.moveTo(px,y-dhh); ctx.lineTo(px+dw,y); ctx.lineTo(px,y+dhh); ctx.lineTo(px-dw,y); ctx.closePath(); ctx.fill();
         /* الأخدود تحت الكتلة = الظل اللي يعطيها بروز */
         ctx.strokeStyle="rgba(14,9,4,"+(.14+.24*face).toFixed(3)+")"; ctx.lineWidth=Math.max(.6,dw*.26);
         ctx.beginPath(); ctx.moveTo(px-dw,y); ctx.lineTo(px,y+dhh); ctx.lineTo(px+dw,y); ctx.stroke();
         /* الحافة العليا المضاءة */
-        ctx.strokeStyle="rgba(255,240,208,"+(.10+.22*face*(lf?1:.30)).toFixed(3)+")"; ctx.lineWidth=Math.max(.5,dw*.20);
+        ctx.strokeStyle="rgba(255,240,208,"+(.05+.13*face*(lf?1:.30)).toFixed(3)+")"; ctx.lineWidth=Math.max(.5,dw*.20);
         ctx.beginPath(); ctx.moveTo(px-dw,y); ctx.lineTo(px,y-dhh); ctx.lineTo(px+dw,y); ctx.stroke();
       }
     }
@@ -6883,8 +6979,8 @@ function renderPalm(ctx,sp,id,cx,gy,Hd,M,seed,withered,bloom,small,maxHalf,juv){
   const nF0 = Math.round((fan ? (small?12:16+fit*12) : (small?20:30+fit*26))*lerp(1,.45,juv));
   /* ألوان السعف تتبع ضوء اللحظة: شمس واطية = أغمق ودافي، مثل الشجر */
   const sunAdj=c=>{ let o=c; if(LIGHT_WARM>.05) o=mix(o,"#C8884A",LIGHT_WARM*.22); return shade(o,-(1-clamp(LIGHT_ELEV*2.2,0,1))*.22); };
-  const leafC = sunAdj(id==="palm" ? mix(sp.leaf,"#7E967A",.30) : sp.leaf);
-  const leafC2= sunAdj(id==="palm" ? mix(sp.leaf2,"#A3B492",.22) : sp.leaf2);
+  const leafC = sunAdj(id==="palm" ? shade(mix(sp.leaf,"#6C8A66",.22),-.10) : sp.leaf);
+  const leafC2= sunAdj(id==="palm" ? mix(sp.leaf2,"#A9BC8C",.16) : sp.leaf2);
   const dryC="#9A7A48", deadC="#7A6040";
   const backList=[], frontList=[];
   crowns.forEach((cr,ci)=>{
@@ -6911,15 +7007,21 @@ function renderPalm(ctx,sp,id,cx,gy,Hd,M,seed,withered,bloom,small,maxHalf,juv){
       const t=k/N;
       P.push([cr.x+d.x*L*t, cr.y-d.y*L*t+L*f.droop*t*t]);
     }
-    const lit=palmLight(d.x,d.y,d.z)*(d.z<0?.78:1);
+    const lit=palmLight(d.x,d.y,d.z)*(d.z<0?.70:1);
     const base=dry ? mix(dryC,deadC,.3) : leafC, hi=dry ? dryC : leafC2;
-    const cUp=shade(mix(base,hi,lit),.06+lit*.16), cDn=shade(mix(base,hi,lit*.5),-.22);
-    const nl=clamp(Math.round(L/(small?4.2:3.0)),10,70);
-    const wid=Math.max(.55,L*.0052);
-    /* الخوص: الجهتين بلونين (الوجه المضاء والوجه المظلل) — دفعة رسم وحدة لكل جهة */
-    [[-1,cDn],[1,cUp]].forEach(([side,col])=>{
+    /* العمق: السعف الخلفي والسفلي بظل التاج نفسه (ما يوصله إلا ضوء منعكس)، والعلوي المقابل
+       للشمس يلمع. بدون هذا الفرق يطلع التاج كله بدرجة وحدة = مروحة ورقية مسطّحة */
+    const occ=clamp((d.z<0?.34*(-d.z)+.10:0)+.30*age*age+(d.y<0?.16*(-d.y):0),0,.62);
+    const cUp=shade(mix(base,hi,lit),.10+lit*.20-occ), cDn=shade(mix(base,hi,lit*.45),-.26-occ*.8);
+    const cUpIn=shade(cUp,-.30), cDnIn=shade(cDn,-.26);       /* قلب التاج: الخوص القريب من الرأس محجوب */
+    const nl=clamp(Math.round(L/(small?4.2:2.7)),10,78);
+    const wid=Math.max(.6,L*.0066);
+    const jIn=small?0:Math.round(nl*.36);
+    /* الخوص: الجهتين بلونين (الوجه المضاء والوجه المظلل)، وكل جهة قسمين: داخلي معتم وخارجي */
+    [[-1,cDnIn,0,jIn],[1,cUpIn,0,jIn],[-1,cDn,jIn,nl],[1,cUp,jIn,nl]].forEach(([side,col,j0,j1])=>{
+      if(j1<=j0) return;
       ctx.strokeStyle=col; ctx.lineWidth=wid; ctx.lineCap="round"; ctx.beginPath();
-      for(let j=0;j<nl;j++){
+      for(let j=j0;j<j1;j++){
         const t=.10+.88*(j+.5)/nl, k=Math.min(N-1,Math.floor(t*N)), fr=t*N-k;
         const x=lerp(P[k][0],P[k+1][0],fr), y=lerp(P[k][1],P[k+1][1],fr);
         const ang=Math.atan2(P[k+1][1]-P[k][1],P[k+1][0]-P[k][0]);
@@ -6933,7 +7035,7 @@ function renderPalm(ctx,sp,id,cx,gy,Hd,M,seed,withered,bloom,small,maxHalf,juv){
       ctx.stroke();
     });
     /* الجريد: أعرض عند القاعدة ويستدق للطرف */
-    ctx.strokeStyle=dry?shade(dryC,-.15):shade(mix(sp.stem,"#B7B077",.45),-.10+lit*.12);
+    ctx.strokeStyle=dry?shade(dryC,-.15-occ*.5):shade(mix(sp.stem,"#B7B077",.45),-.10+lit*.12-occ*.7);
     for(let seg=0;seg<3;seg++){
       ctx.lineWidth=Math.max(.6,L*(.020-.006*seg)); ctx.beginPath();
       for(let k=seg*5;k<=Math.min(N,seg*5+5);k++) k===seg*5?ctx.moveTo(P[k][0],P[k][1]):ctx.lineTo(P[k][0],P[k][1]);
@@ -6960,37 +7062,39 @@ function renderPalm(ctx,sp,id,cx,gy,Hd,M,seed,withered,bloom,small,maxHalf,juv){
               Math.cos(psi)*uz+Math.sin(psi)*d.z];
     };
     const rad=j=>Ls*(.80+.20*Math.sin(Math.PI*j/nSeg))*(.88+.24*tHash(seed,f.i*53+j,6));
-    /* ١) النصل: مضلّع من المركز لحافة مسنّنة */
+    /* ١) جسم النصل: قطاع بحافة ناعمة عند ~٦٥٪ من الطول؛ الباقي شقّات مدبّبة تتدلّى بانحناء */
+    const P=(sv,r,k)=>[px+sv[0]*r*k, py-sv[1]*r*k+r*k*.10*k];
     ctx.fillStyle=shade(mix(base,hi,lit*.75), -.06+lit*.16);
     ctx.beginPath(); ctx.moveTo(px,py);
-    for(let j=0;j<=nSeg;j++){
-      const sv=dir(j), r=rad(j);
-      const ex=px+sv[0]*r, ey=py-sv[1]*r+r*.10;
-      ctx.lineTo(ex,ey);
-      if(j<nSeg){                                          /* الشقّ بين كل شقّتين: يرجع للداخل */
-        const sm=dir(j+.5), rm=rad(j+.5)*(.58+.16*tHash(seed,f.i*53+j,7));
-        ctx.lineTo(px+sm[0]*rm, py-sm[1]*rm+rm*.10);
-      }
-    }
+    for(let j=0;j<=nSeg;j++){ const q=P(dir(j),rad(j),.66); ctx.lineTo(q[0],q[1]); }
     ctx.closePath(); ctx.fill();
-    /* ٢) الطيّات: خط غامق بكل شقّة + طرف متدلٍّ رفيع */
-    ctx.strokeStyle=shade(mix(base,hi,lit*.5),-.26); ctx.lineWidth=Math.max(.5,Ls*.016); ctx.beginPath();
-    for(let j=0;j<=nSeg;j++){
-      const sv=dir(j), r=rad(j);
-      if(sv[2]<-.55) continue;
-      const ex=px+sv[0]*r, ey=py-sv[1]*r+r*.10;
-      ctx.moveTo(px+sv[0]*r*.10, py-sv[1]*r*.10);
-      ctx.lineTo(ex,ey);
-      ctx.lineTo(ex+sv[0]*r*.22, ey+r*.26);                /* الطرف يتدلّى */
+    /* ٢) الشقّات: شفرة مدبّبة لكل شقّة، طرفها يتدلّى بمنحنى (جاذبية) مو بزاوية حادّة */
+    const segCol=shade(mix(base,hi,lit*.6),-.02+lit*.08), segDk=shade(mix(base,hi,lit*.4),-.24);
+    for(let j=0;j<nSeg;j++){
+      const sv=dir(j+.5), r=rad(j+.5), w=(Math.PI*.90/nSeg)*r*.50;
+      const a0=P(sv,r,.56), tip=P(sv,r,1);
+      const ox=-sv[2]*.0, hw=Math.max(.5,w*.55);
+      const nx=-(tip[1]-a0[1]), ny=(tip[0]-a0[0]), nl=Math.hypot(nx,ny)||1;
+      const dx=nx/nl*hw, dy=ny/nl*hw;
+      const gx=tip[0]+sv[0]*r*.05, gy=tip[1]+r*(.20+.10*tHash(seed,f.i*53+j,8));
+      const mx=(a0[0]+tip[0])/2+sv[0]*r*.04, my=(a0[1]+tip[1])/2+r*.05;
+      ctx.fillStyle=(j&1)?segCol:shade(segCol,-.07);
+      ctx.beginPath(); ctx.moveTo(a0[0]-dx,a0[1]-dy);
+      ctx.quadraticCurveTo(mx-dx*.8,my-dy*.8,gx,gy);
+      ctx.quadraticCurveTo(mx+dx*.8,my+dy*.8,a0[0]+dx,a0[1]+dy);
+      ctx.closePath(); ctx.fill();
     }
-    ctx.stroke();
-    /* ٣) خيط مضيء على الطيّات المقابلة للشمس */
-    ctx.strokeStyle=shade(mix(base,hi,1),.12); ctx.lineWidth=Math.max(.4,Ls*.009); ctx.beginPath();
+    /* ٣) خطوط طيّات ناعمة من المركز + لمعة على المواجه للشمس */
+    ctx.strokeStyle=segDk; ctx.lineWidth=Math.max(.4,Ls*.010); ctx.globalAlpha=.55; ctx.beginPath();
+    for(let j=0;j<=nSeg;j++){
+      const sv=dir(j), r=rad(j); if(sv[2]<-.55) continue;
+      const q0=P(sv,r,.10), q1=P(sv,r,.62); ctx.moveTo(q0[0],q0[1]); ctx.lineTo(q1[0],q1[1]);
+    }
+    ctx.stroke(); ctx.globalAlpha=1;
+    ctx.strokeStyle=shade(mix(base,hi,1),.14); ctx.lineWidth=Math.max(.4,Ls*.008); ctx.beginPath();
     for(let j=0;j<=nSeg;j+=2){
-      const sv=dir(j), r=rad(j); if(sv[2]<-.2) continue;
-      if(palmLight(sv[0],sv[1],sv[2])<.62) continue;
-      ctx.moveTo(px+sv[0]*r*.18, py-sv[1]*r*.18);
-      ctx.lineTo(px+sv[0]*r*.92, py-sv[1]*r*.92+r*.09);
+      const sv=dir(j), r=rad(j); if(sv[2]<-.2||palmLight(sv[0],sv[1],sv[2])<.62) continue;
+      const q0=P(sv,r,.18), q1=P(sv,r,.80); ctx.moveTo(q0[0],q0[1]); ctx.lineTo(q1[0],q1[1]);
     }
     ctx.stroke();
   }
@@ -8129,8 +8233,10 @@ function gradeAndComposite(ctx, L, bl, w, h, gy, s, K, elev, sunX){
      فيطلع التاج منقّطاً بنقاط فاتحة باردة تحس إنها توهّج أو ثلج مرشوش على الشجرة. الحل
      إننا نسحب كل الورق نحو درجة ليلية واحدة بنسبة تتبع عتمة الليل. */
   if(n>.20){
-    const flat=mixRGB([20,26,41],[40,50,76], bl.moon?clamp(bl.illum,0,1):0);
-    const fa=(.60*n).toFixed(3);
+    /* النبتة بالليل أغمق من السما اللي وراها (ظلّية)، مو أفتح: اللون القديم كان أفتح من
+       سما الليل فتطلع النخلة شبحاً رمادياً باهتاً كأنها من ضباب */
+    const flat=mixRGB([11,15,27],[27,35,56], bl.moon?clamp(bl.illum,0,1):0);
+    const fa=(.66*n).toFixed(3);
     blendOnto(L, plantMasked(L, t=>{
       t.globalAlpha=+fa;
       t.fillStyle="rgb("+flat.map(v=>Math.round(v)).join(",")+")";
@@ -8777,7 +8883,7 @@ function normalize(d){
      لو تزامنت مزرعتك من جهازين، ندمج بالأعلى والاتحاد وما يضيع ولا يتضاعف شي.
      coinFrac هو كسر الكوين الباقي من جلسة سابقة فما تضيع دقائق المستخدم. */
   if(!Array.isArray(o.owned)) o.owned=[];
-  o.owned = o.owned.filter((k,i)=> SPECIES[k] && SEED_PRICE[k] && o.owned.indexOf(k)===i);
+  o.owned = o.owned.filter((k,i)=> ((SPECIES[k] && SEED_PRICE[k]) || isPlaceKey(k)) && o.owned.indexOf(k)===i);
   o.coinsEarned = Math.max(0, Math.floor(Number(o.coinsEarned)||0));
   o.coinFrac = Number(o.coinFrac); if(!(o.coinFrac>=0 && o.coinFrac<1)) o.coinFrac=0;
   /* طابور المنح المعلّق — محلي بحت، ما يُرفع ولا يُدمج */
@@ -9066,8 +9172,8 @@ function notifyAlways(title,body){
 let WALLET = null;
 const walletOn  = () => !!(CURRENT && CURRENT.cloud && WALLET);
 const ownedList = () => (walletOn() ? (WALLET.owned||[]) : (DB.owned||[]));
-const seedPrice = k => SEED_PRICE[k] || 0;
-const seedOwned = k => !SEED_PRICE[k] || ownedList().includes(k);
+const seedPrice = k => SEED_PRICE[k] || (isPlaceKey(k) ? placePrice(placeIdOfKey(k)) : 0);
+const seedOwned = k => (!SEED_PRICE[k] && !isPlaceKey(k)) || ownedList().includes(k);
 function coinsSpent(){ return (DB.owned||[]).reduce((a,k)=>a+seedPrice(k),0); }
 function coinBalance(){
   if(walletOn()) return Math.max(0, WALLET.balance|0);
@@ -9077,7 +9183,7 @@ function coinBalance(){
 function applyWallet(w){
   if(!w || typeof w!=="object") return false;
   WALLET = { earned:+w.earned||0, spent:+w.spent||0, balance:+w.balance||0,
-             owned:Array.isArray(w.owned)?w.owned.filter(k=>SEED_PRICE[k]):[] };
+             owned:Array.isArray(w.owned)?w.owned.filter(k=>SEED_PRICE[k]||isPlaceKey(k)):[] };
   DB.coinsEarned = WALLET.earned;
   DB.owned = WALLET.owned.slice();
   if(SEED_PRICE[DB.seed] && !seedOwned(DB.seed)) DB.seed="basil";
@@ -9172,6 +9278,8 @@ function coinNote(got){
 }
 async function buySeed(k){
   const price = seedPrice(k);
+  const pid = placeIdOfKey(k), isPl = !!pid;
+  const itemName = isPl ? TR((PLACES.find(p=>p.id===pid)||{n:pid}).n) : TR(SPECIES[k].n);
   if(!price || seedOwned(k)) return false;
   if(CURRENT && CURRENT.guest){
     toast(TR("المتجر للحسابات المسجّلة. أنشئ حسابك وتكسب كوينز من جلساتك."),"🔒");
@@ -9183,8 +9291,9 @@ async function buySeed(k){
     try{
       await flushAwards();
       applyWallet(await gRpc("wallet_buy",{ p_species:k }));
-      DB.seed = k; writeStore();
-      toast(TR("شريت ")+TR(SPECIES[k].n)+TR(" بـ ")+price+TR(" كوينز · باقي ")+coinBalance(),"🛒");
+      if(!isPl) DB.seed = k;
+      writeStore();
+      toast(TR("شريت ")+itemName+TR(" بـ ")+price+TR(" كوينز · باقي ")+coinBalance(),"🛒");
       return true;
     }catch(e){
       const m = String(e&&e.message||e);
@@ -9200,14 +9309,15 @@ async function buySeed(k){
   }
   if(!Array.isArray(DB.owned)) DB.owned=[];
   DB.owned.push(k);
-  DB.seed = k;
+  if(!isPl) DB.seed = k;
   writeStore();
-  toast(TR("شريت ")+TR(SPECIES[k].n)+TR(" بـ ")+price+TR(" كوينز · باقي ")+coinBalance(),"🛒");
+  toast(TR("شريت ")+itemName+TR(" بـ ")+price+TR(" كوينز · باقي ")+coinBalance(),"🛒");
   return true;
 }
 /* تأكيد الشراء — نافذة صغيرة بدل confirm() المتصفح، عشان تحترم ثيم التطبيق */
 function confirmBuySeed(k, after){
-  const price = seedPrice(k), sp = SPECIES[k];
+  const pid0 = placeIdOfKey(k), pl0 = pid0 ? PLACES.find(p=>p.id===pid0) : null;
+  const price = seedPrice(k), sp = pl0 ? { n:pl0.n, note:pl0.sub } : SPECIES[k];
   if(!sp || !price) return;
   if(CURRENT && CURRENT.guest){ buySeed(k); return; }
   const bal = coinBalance(), enough = bal >= price;
@@ -10103,8 +10213,15 @@ function renderPlaceChips(){
     const b=document.createElement("button");
     b.className="chip"; b.type="button";
     b.setAttribute("aria-pressed", String(P.id===cur));
-    b.innerHTML = escAttr(TR(P.n))+'<small>'+escAttr(TR(P.sub))+'</small>';
-    b.onclick=()=>{ setPlace(P.id); renderPlaceChips(); updatePlaceBadge(); lastDraw=0; drawHero(); try{ writeRoute(); }catch(e){} };
+    const open=placeUnlocked(P.id);
+    b.innerHTML = (open?"":"🔒 ")+escAttr(TR(P.n))+'<small>'+escAttr(open ? TR(P.sub) : (placePrice(P.id)+" "+TR("كوينز")))+'</small>';
+    if(!open) b.classList.add("locked");
+    b.onclick=()=>{
+      if(!placeUnlocked(P.id)){
+        confirmBuySeed(placeKey(P.id), ()=>{ setPlace(P.id); renderPlaceChips(); updatePlaceBadge(); lastDraw=0; drawHero(); try{ writeRoute(); }catch(e){} });
+        return;
+      }
+      setPlace(P.id); renderPlaceChips(); updatePlaceBadge(); lastDraw=0; drawHero(); try{ writeRoute(); }catch(e){} };
     box.appendChild(b);
   });
   renderSkyChips();
@@ -11640,7 +11757,7 @@ function gSceneLabel(m){
 function gScenePanel(){
   const cur=curPlaceId(), sk=skyMode();
   const opts = ['<option value="auto"'+(cur==="auto"?" selected":"")+'>'+TR("تلقائي (موقعي)")+'</option>']
-    .concat(PLACES.filter(p=>p.id!=="auto").map(p=>'<option value="'+p.id+'"'+(p.id===cur?" selected":"")+'>'+escAttr(TR(p.n))+' — '+escAttr(TR(p.sub))+'</option>')).join("");
+    .concat(PLACES.filter(p=>p.id!=="auto" && (placeUnlocked(p.id)||p.id===cur)).map(p=>'<option value="'+p.id+'"'+(p.id===cur?" selected":"")+'>'+escAttr(TR(p.n))+' — '+escAttr(TR(p.sub))+'</option>')).join("");
   const chips = ["sync","day","sunset","night"].map(k=>
     '<button class="chip" type="button" data-act="gsky" data-v="'+k+'" aria-pressed="'+(k===sk)+'">'+SKY_ICON[k]+" "+TR(SKY_LABELS[k])+'</button>').join("");
   return '<section class="panel g-scene"><h3>📍 '+TR("مكاني ووقتي")+'</h3>'+
