@@ -11804,14 +11804,14 @@ async function gLock(v){
   catch(e){ toast(TR(gErrMsg(e)),"⚠️"); }
 }
 async function gEnd(){
-  if(!confirm(TR("تبي تنهي الجلسة للجميع؟ نبتة كل واحد تنحفظ بالوقت اللي وصله."))) return;
+  if(!(await appConfirm(TR("تبي تنهي الجلسة للجميع؟ نبتة كل واحد تنحفظ بالوقت اللي وصله.")))) return;
   try{ await gRpc("group_end", { p_code:G.code }); await gRefresh(); }
   catch(e){ toast(TR(gErrMsg(e)),"⚠️"); }
 }
 async function gLeave(){
   const r=G.room, me=gMe();
   const running = r && r.status==="running" && !gIsDone() && !gEnded();
-  if(running && me && me.state==="alive" && !confirm(TR("متأكد؟ لو انسحبت الحين تذبل نبتتك."))) return;
+  if(running && me && me.state==="alive" && !(await appConfirm(TR("متأكد؟ لو انسحبت الحين تذبل نبتتك.")))) return;
   try{
     await gRpc("group_leave", { p_code:G.code });
     if(running){ const s=await gRpc("group_state",{ p_code:G.code }); if(s){ G.room=s; gRecordMine(); } }
@@ -12503,17 +12503,17 @@ async function cmAct(b){
         try{ await navigator.clipboard.writeText(code); C.ok=TR("نسخنا الكود."); }catch(e){ C.ok=code; }
         cmPaint(); setTimeout(()=>{ C.ok=""; cmPaint(); }, 3000); return;
       }
-      case "regen": if(!confirm(TR("تبي كود جديد؟ الكود القديم يبطل."))) return;
+      case "regen": if(!(await appConfirm(TR("تبي كود جديد؟ الكود القديم يبطل.")))) return;
         await gRpc("community_regen_code", { p_community:C.id }); return cmFetchData();
-      case "kick": if(!confirm(TR("تطرد هذا العضو من المجتمع؟"))) return;
+      case "kick": if(!(await appConfirm(TR("تطرد هذا العضو من المجتمع؟")))) return;
         await gRpc("community_kick", { p_community:C.id, p_user:x }); return cmFetchData();
       case "delmsg": await gRpc("community_delete_message", { p_community:C.id, p_id:+x });
         C.msgs=C.msgs.filter(m=>String(m.id)!==String(x)); return cmPaintMsgs(false);
-      case "leave": if(!confirm(TR("تبي تخرج من المجتمع؟"))) return;
+      case "leave": if(!(await appConfirm(TR("تبي تخرج من المجتمع؟")))) return;
         await gRpc("community_leave", { p_community:C.id }); C.id=null; C.d=null; G.mode="c-list"; await cmLoadList(); return;
-      case "delete": if(!confirm(TR("تحذف المجتمع نهائياً؟ الرسائل والأعضاء ينحذفون."))) return;
+      case "delete": if(!(await appConfirm(TR("تحذف المجتمع نهائياً؟ الرسائل والأعضاء ينحذفون.")))) return;
         await gRpc("community_delete", { p_community:C.id }); C.id=null; C.d=null; G.mode="c-list"; await cmLoadList(); return;
-      case "endlive": if(!confirm(TR("تنهي الجلسة الجماعية للجميع؟"))) return;
+      case "endlive": if(!(await appConfirm(TR("تنهي الجلسة الجماعية للجميع؟")))) return;
         await gRpc("community_end_session", { p_community:C.id }); return cmFetchData();
       case "joinlive":
         if(sess){ toast(TR("خلّص جلستك الفردية أول."),"⏱️"); return; }
@@ -12714,7 +12714,7 @@ $("#strictSwitch").onclick=e=>{
 };
 $("#startBtn").onclick=startSession;
 $("#keepBtn").onclick=keep;
-$("#killBtn").onclick=()=>{ if(confirm(TR("متأكد؟ النبتة تموت وتنحفظ ذابلة في المزرعة."))) wither(TR("قتلتها")); };
+$("#killBtn").onclick=async()=>{ if(await appConfirm(TR("متأكد؟ النبتة تموت وتنحفظ ذابلة في المزرعة."))) wither(TR("قتلتها")); };
 $("#exportBtn").onclick=()=>exportBackup();
 $("#resetBtn").onclick=()=>{
   if(!confirm(TR("هذا يمسح المزرعة والإنجازات كلها. أكمل؟"))) return;
@@ -13574,6 +13574,26 @@ async function deleteAccount(){
   writeAcc(); closeSheet();
   CURRENT=null; DB=normalize(null); WALLET=null; $("#userInitial").textContent="·";
   showGate();
+}
+/* تأكيد داخل التطبيق بدل confirm() المتصفح: النافذة الأصلية تُخرجك من الشاشة الكاملة وتكسر
+   قفل التركيز أثناء المذاكرة. هذي تظهر فوق الصفحة وتبقيك داخل الشاشة الكاملة. */
+function appConfirm(text, okLabel){
+  return new Promise(res=>{
+    const ov=document.createElement("div");
+    ov.setAttribute("role","dialog"); ov.setAttribute("aria-modal","true");
+    ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:18px";
+    const box=document.createElement("div");
+    box.style.cssText="background:var(--paper);border-radius:var(--r-m);max-width:360px;width:100%;padding:22px;text-align:center";
+    const p=document.createElement("p"); p.style.cssText="margin:0 0 18px;font-size:15px;line-height:1.7;color:var(--ink)"; p.textContent=text;
+    const row=document.createElement("div"); row.style.cssText="display:flex;gap:8px";
+    const no=document.createElement("button"); no.type="button"; no.className="btn btn-quiet"; no.style.flex="1"; no.textContent=TR("رجوع");
+    const yes=document.createElement("button"); yes.type="button"; yes.className="btn btn-primary"; yes.style.flex="1"; yes.textContent=okLabel||TR("متأكد");
+    const done=v=>{ ov.remove(); res(v); };
+    no.onclick=()=>done(false); yes.onclick=()=>done(true);
+    ov.addEventListener("click",e=>{ if(e.target===ov) done(false); });
+    row.append(no,yes); box.append(p,row); ov.append(box); document.body.appendChild(ov);
+    try{ no.focus(); }catch(e){}
+  });
 }
 function openPrivacyPolicy(){
   closeSheet();
