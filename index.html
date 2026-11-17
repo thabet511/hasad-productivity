@@ -13578,8 +13578,9 @@ async function deleteAccount(){
 function openPrivacyPolicy(){
   closeSheet();
   /* السياسات كلها في صفحة منفصلة: privacy.html (ثنائية اللغة). rel=noopener تمنع الصفحة الجديدة من الوصول لهذي */
-  const w = window.open("privacy.html?lang="+(LANG==="en"?"en":"ar"), "_blank", "noopener,noreferrer");
-  if(!w) location.href = "privacy.html?lang="+(LANG==="en"?"en":"ar");
+  /* اللغة تنقرأ من نفس التخزين (hasad.lang) فما نحتاج ?lang بالرابط */
+  const w = window.open("privacy.html", "_blank", "noopener,noreferrer");
+  if(!w) location.href = "privacy.html";
 }
 
 function exportBackup(){
