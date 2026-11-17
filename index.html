@@ -967,6 +967,15 @@ body,.panel,.stage,.btn,.chip,.switch-row,.isofarm{
         <h3>المهلة قبل الذبول <span class="hint">للجلسات الطويلة خلّها أوسع</span></h3>
         <div class="chips" id="graceChips"></div>
       </section>
+      <details class="panel" id="lockHelp" style="margin-top:8px">
+        <summary style="cursor:pointer;font-weight:700">🔒 قفل أقوى للجهاز كله (بإذنك)</summary>
+        <div style="font-size:13px;line-height:1.9;margin-top:8px">
+          الموقع لا يقدر يقفل المتصفح من نفسه، لكن جهازك يقدر لو أعطيته الإذن:<br>
+          <b>آيفون / آيباد:</b> الإعدادات ← تسهيلات الاستخدام ← <b>الوصول الموجّه</b> ← شغّله وحدد رمزاً. افتح حصاد في سفاري ثم اضغط زر الجنب ٣ مرات ← ابدأ. ما يطلع الجهاز من الصفحة إلا برمزك.<br>
+          <b>أندرويد:</b> الإعدادات ← الأمان ← <b>تثبيت الشاشة</b> ← شغّله. افتح حصاد في كروم، افتح شاشة التطبيقات الأخيرة، اضغط شعار التطبيق ← <b>تثبيت</b>.<br>
+          <b>كمبيوتر:</b> الموقع يدخل الشاشة الكاملة تلقائياً. للقفل الأقوى استخدم وضع التركيز في النظام.
+        </div>
+      </details>
 
       <div class="actions">
         <button class="btn btn-primary" id="startBtn">
@@ -2522,7 +2531,31 @@ const SPECIES = {
   neem:{ n:"نيم", fam:"big", kind:"leafy", mat:"tree", canopy:"round", note:"ورق ريشي دقيق وكثيف، يصمد بالحر.",
     leaf:"#35703E", leaf2:"#488A50", stem:"#5E5A42", flower:"#E4E8D0", core:"#C2C8A4", bark:"#5E5A42", pairs:13, lw:.26, ll:.92, th:1.2 },
   bamboo:{ n:"خيزران", fam:"big", kind:"leafy", mat:"tree", canopy:"round", note:"عيدان مجوّفة عالية وورق رفيع كثيف.",
-    leaf:"#4A8A46", leaf2:"#60A25C", stem:"#9AA85E", flower:"#C8CC8A", core:"#A8AC66", bark:"#9AA85E", slim:true, pairs:12, lw:.16, ll:1.25, th:.8 }
+    leaf:"#4A8A46", leaf2:"#60A25C", stem:"#9AA85E", flower:"#C8CC8A", core:"#A8AC66", bark:"#9AA85E", slim:true, pairs:12, lw:.16, ll:1.25, th:.8 },
+
+  /* ─ أنواع ملوّنة جديدة: كل واحدة بلون يميّزها (ما تتكرر مع اللي سبق) ─ */
+  marigold:{ n:"قطيفة", fam:"herbflower", kind:"sun", mat:"clump", note:"زهرة برتقالية ذهبية مكتنزة تفرح المكان.",
+    leaf:"#4C8A48", leaf2:"#5FA05A", stem:"#5A8A4A", flower:"#F08A1C", core:"#B8501A", pairs:6, lw:.34, ll:.80, th:.8, fl:.85 },
+  cosmos:{ n:"كوزموس", fam:"herbflower", kind:"sun", mat:"clump", note:"زهور وردية خفيفة على سيقان طويلة تتمايل.",
+    leaf:"#5E9A5C", leaf2:"#74B06E", stem:"#68A064", flower:"#E86AA6", core:"#F2C230", pairs:7, lw:.12, ll:.95, th:.7, fl:.8 },
+  salvia:{ n:"سالفيا حمراء", fam:"herbflower", kind:"spike", mat:"clump", note:"سنابل قرمزية ناريّة تجذب الطيور.",
+    leaf:"#3E7A46", leaf2:"#52925A", stem:"#4A8250", flower:"#D4262E", core:"#F05A4A" },
+  delphinium:{ n:"دلفينيوم", fam:"herbflower", kind:"spike", mat:"clump", note:"سنابل زرقاء كحلية نادرة اللون.",
+    leaf:"#4E8A5A", leaf2:"#62A06E", stem:"#4C8658", flower:"#3E62D0", core:"#7C98EC" },
+  oleander:{ n:"دفلى", fam:"big", kind:"leafy", mat:"tree", canopy:"round", note:"شجيرة حارّة الصيف بعناقيد وردية، وكل أجزائها سامّة فلا تأكلها.",
+    leaf:"#3A7048", leaf2:"#4C885A", stem:"#6A5C4A", flower:"#EE6E9C", core:"#F8B4CC", bark:"#6A5C4A", blossom:true, pairs:9, lw:.18, ll:1.15, th:1.0 },
+  bougainvillea:{ n:"بوغنفيليا", fam:"big", kind:"leafy", mat:"tree", canopy:"spread", note:"شلال أرجواني يغطّي الجدران في كل شوارعنا.",
+    leaf:"#4C8048", leaf2:"#5E9658", stem:"#7A6450", flower:"#C21F78", core:"#E96AAE", bark:"#7A6450", blossom:true, pairs:7, lw:.48, ll:.8, th:1.0 },
+  cassia:{ n:"خيار شنبر", fam:"big", kind:"leafy", mat:"tree", canopy:"spread", note:"عناقيد ذهبية متدلية كالمطر الأصفر.",
+    leaf:"#5E9448", leaf2:"#76AC5C", stem:"#6E5A44", flower:"#F4C832", core:"#FBE48A", bark:"#6E5A44", blossom:true, pairs:8, lw:.32, ll:.95, th:1.05 },
+  poinciana:{ n:"بونسيانا (الغاب الأحمر)", fam:"big", kind:"leafy", mat:"tree", canopy:"spread", note:"مظلة عريضة مشتعلة بالأحمر البرتقالي.",
+    leaf:"#4E8A4A", leaf2:"#62A25C", stem:"#6A5848", flower:"#E8432A", core:"#F58A4A", bark:"#6A5848", blossom:true, pairs:12, lw:.16, ll:.9, th:1.1 },
+  ginkgo:{ n:"جنكة", fam:"big", kind:"leafy", mat:"tree", canopy:"round", note:"ورق مروحي ذهبي كأنه خريف دائم.",
+    leaf:"#D9B53A", leaf2:"#EBCB52", stem:"#7A6A52", flower:"#E8D890", core:"#C8B050", bark:"#7A6A52", pairs:6, lw:.85, ll:.7, th:1.05 },
+  redmaple:{ n:"قيقب أحمر", fam:"big", kind:"leafy", mat:"tree", canopy:"round", note:"ورق قرمزي ناري مفصّص.",
+    leaf:"#B5301F", leaf2:"#D44A2A", stem:"#6A5040", flower:"#E88A5A", core:"#C8603A", bark:"#6A5040", pairs:5, lw:.9, ll:.85, th:1.1 },
+  purpleplum:{ n:"برقوق بنفسجي", fam:"fruit", kind:"fruit", mat:"tree", canopy:"round", note:"ورق أرجواني داكن وزهر وردي باهت وثمر بنفسجي.",
+    leaf:"#5E2E5A", leaf2:"#7C4474", stem:"#4E3A44", flower:"#9A3A8C", core:"#5E1E5A", bark:"#4E3A44", fruit:true, pairs:7, lw:.55, ll:.8, th:1.0, fl:.9 }
 };
 /* أنواع مخفية من قائمة الاختيار — تعريفها باقي عشان النبتات المحفوظة قديماً تنرسم عادي.
    أخفينا المكرر بصرياً (نفس الشكل بلون مختلف) وغير المعروف محلياً، وأبقينا الأشهر:
@@ -2555,7 +2588,10 @@ const SEED_PRICE = {
   fig:580, mango:600, sidr:620, jacaranda:680, sakura:700,
   /* الأنواع الكثيفة الورق — أغلى شوي لأنها أوضح وأجمل بالمشهد */
   coleus:380, fern:440, taro:520, euphorbia:540, grape:600,
-  neem:640, bamboo:660, banana:670, fishtail:680, eucalyptus:690, ficus:700
+  neem:640, bamboo:660, banana:670, fishtail:680, eucalyptus:690, ficus:700,
+  /* ملوّنة جديدة */
+  marigold:320, cosmos:340, salvia:360, delphinium:400, oleander:480, bougainvillea:520,
+  cassia:560, ginkgo:600, purpleplum:620, redmaple:660, poinciana:700
 };
 /* المجانية أولاً، ثم المدفوعة من الأرخص للأغلى — ترتيب يقرأ كأنه رفوف متجر */
 const SP_ORDER = FREE_SEEDS.filter(k=>SPECIES[k] && !HIDDEN_SPECIES.has(k)).concat(
@@ -9628,6 +9664,7 @@ function resumeSession(){
   sess.paused=false; sess.pausedAt=null;
   sess.hb=0; beat();
   renderAll(); paintClock(sessGrowMins(elapsedMin())); lastDraw=0; startLoop();
+  try{ focusLockOn(); }catch(e){}
 }
 function sizeHero(){
   const box=$(".stage").clientWidth||340;
@@ -10034,11 +10071,18 @@ document.addEventListener("visibilitychange", ()=>{
    كلها بعد ضغطتك أنت على "ابدأ"، وتنتهي مع الجلسة. */
 let blurAt=null;
 function focusLockActive(){ return !!(sess && DB.strict && !sess.paused); }
+function focusKeep(){ return !!(sess && DB.strict); }     /* الشاشة الكاملة تبقى حتى أثناء الإيقاف المؤقت */
 function focusLockOn(){
   if(!DB.strict) return;
   try{
     const de=document.documentElement;
-    if(!document.fullscreenElement && de.requestFullscreen) de.requestFullscreen({navigationUI:"hide"}).catch(()=>{});
+    if(!document.fullscreenElement && de.requestFullscreen){
+      const p=de.requestFullscreen({navigationUI:"hide"});
+      if(p && p.then) p.then(()=>{
+        /* كروم/إيدج: نمنع زر Esc من إخراجك (الضغط الطويل عليه ثانيتين يظل يطلّعك) */
+        try{ if(navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock(["Escape"]).catch(()=>{}); }catch(e){}
+      }).catch(()=>{});
+    }
   }catch(e){}
 }
 function focusLockOff(){
@@ -10060,8 +10104,12 @@ window.addEventListener("focus", ()=>{
   if(away>1500) toast(TR("رجعت بسرعة. سلمت النبتة."),"🌿");
 });
 document.addEventListener("fullscreenchange", ()=>{
-  if(!document.fullscreenElement && focusLockActive()) toast(TR("طلعت من الشاشة الكاملة. اضغط على الصفحة وكمّل تركيزك."),"🛡️");
+  if(!document.fullscreenElement && focusKeep()) toast(TR("طلعت من الشاشة الكاملة. اضغط أي مكان وأرجعك لها."),"🛡️");
 });
+/* أي لمسة/ضغطة أثناء جلسة صارمة ترجّعك للشاشة الكاملة (المتصفح يشترط حركة منك) */
+["pointerdown","keydown"].forEach(ev=>document.addEventListener(ev, ()=>{
+  if(focusKeep() && !document.fullscreenElement) focusLockOn();
+}, true));
 window.addEventListener("pagehide", ()=>{ if(sess){ sess.hb=0; beat(); } if(CURRENT&&CURRENT.cloud) pushNow(true); });
 /* السماء (الشمس/القمر/الإضاءة) تتبع ساعتك حتى بلا جلسة شغالة — نحدّثها كل دقيقة */
 /* ─── حلقة الرسم وقت السكون: المشهد حي دايماً (بحر، غيوم، مطر، فانوس، نجوم، حركة القمر)
@@ -10242,6 +10290,7 @@ function renderSetup(){
   });
   $("#strictSwitch").setAttribute("aria-checked", !!DB.strict);
   $("#gracePanel").style.display = DB.strict?"":"none";
+  { const lh=$("#lockHelp"); if(lh) lh.style.display = DB.strict?"":"none"; }
   renderPlaceChips();
 }
 /* ─── أماكن الزراعة: الاختيار + شارة الجو على المشهد ─── */
