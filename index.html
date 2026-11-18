@@ -9581,7 +9581,9 @@ const PRESENCE_GRACE = 30*1000;      /* نص دقيقة للرد */
 let presenceTimer = null, presenceBox = null, presenceDeadline = 0;
 function presenceReset(){ if(sess) sess.lastPresence = Date.now(); }
 function presenceStart(){
-  clearInterval(presenceTimer);
+  /* معطّل بطلب المستخدم: ما عاد يطلع سؤال "لا زلت موجوداً؟" أثناء الجلسة. الدوال تبقى عشان ما ينكسر شي. */
+  clearInterval(presenceTimer); presenceTimer=null;
+  return;
   presenceReset();
   presenceTimer = setInterval(presenceTick, 1000);
 }
@@ -9916,7 +9918,7 @@ function startSession(){
   const graceLine = (DB.strict
     ? TR("خلّ الصفحة مفتوحة. إذا غبت أكثر من ") + TR(graceName()) + TR(" تذبل النبتة.")
     : TR("الوضع الصارم مقفل. اقعد براحتك، والنبتة تكبر ما دام العدّاد ماشي."))
-    + TR(" وكل ١٠ دقائق يطلع سؤال بصوت: أكّد حضورك خلال ٣٠ ثانية وإلا انحذفت الجلسة.");
+    ;
   const brkLine = sess.breakMins>0 ? (TR("، وبعدها استراحة ")+hhmm(sess.breakMins)) : TR("، وبعدها بلا استراحة");
   const roundLine = roundsTotal>1 ? (TR(" · جولة ")+roundIndex+TR(" من ")+roundsTotal) : "";
   el.runNote.textContent = sess.mode==="timer"
